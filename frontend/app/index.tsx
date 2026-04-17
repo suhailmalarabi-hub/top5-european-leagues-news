@@ -638,8 +638,9 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.outerContainer}>
       <StatusBar barStyle="light-content" backgroundColor="#024494" translucent={false} />
+      <SafeAreaView style={styles.safeArea}>
 
       {/* Notification Banner */}
       <NotificationBanner notification={notification} onDismiss={() => setNotification(null)} color="#024494" />
@@ -721,11 +722,13 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
     </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f2f2f7' },
+  outerContainer: { flex: 1, backgroundColor: '#024494' },
+  safeArea: { flex: 1, backgroundColor: '#f2f2f7' },
 
   // Header
   header: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8, backgroundColor: '#024494' },
@@ -841,7 +844,7 @@ const styles = StyleSheet.create({
   syncBtn: { padding: 6, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 20 },
 
   // News Count Badge
-  newsCountBadge: { position: 'absolute', top: 2, right: 4, backgroundColor: '#FF3B30', borderRadius: 8, minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
+  newsCountBadge: { position: 'absolute', top: 0, right: 2, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 9, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
   newsCountText: { fontSize: 9, color: '#fff', fontWeight: 'bold' },
 
   // Ad Banner
