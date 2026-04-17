@@ -49,37 +49,37 @@ LEAGUES = {
         "id": "la-liga",
         "name": "الدوري الإسباني",
         "name_en": "La Liga",
-        "tour_id": 95,
-        "comp_id": 2978,
+        "tour_id": 101,
+        "comp_id": 2982,
         "country": "إسبانيا",
-        "logo": "https://mediayk.gemini.media/img/yallakora/tourlogo/LaLiga_logo_202328-01-2025-12-28-56.webp"
+        "logo": "https://mediayk.gemini.media/img/yallakora/tourlogo/354466675_177497535300975_2290177074408202728_n3-7-2023-21-58-53.png"
     },
     "serie-a": {
         "id": "serie-a",
         "name": "الدوري الإيطالي",
         "name_en": "Serie A",
-        "tour_id": 94,
+        "tour_id": 100,
         "comp_id": 2981,
         "country": "إيطاليا",
-        "logo": "https://mediayk.gemini.media/img/yallakora/tourlogo/Serie_A_logo_202228-01-2025-12-27-48.webp"
+        "logo": "https://mediayk.gemini.media/img/yallakora/tourlogo/ZKtPclY9_400x4008-8-2021-19-27-36.jpg"
     },
     "bundesliga": {
         "id": "bundesliga",
         "name": "الدوري الألماني",
         "name_en": "Bundesliga",
-        "tour_id": 92,
+        "tour_id": 98,
         "comp_id": 2980,
         "country": "ألمانيا",
-        "logo": "https://mediayk.gemini.media/img/yallakora/tourlogo/Bundesliga_logo_(2017)28-01-2025-12-30-44.webp"
+        "logo": "https://mediayk.gemini.media/img/yallakora/tourlogo/download%20(1)10-8-2025-17-40-51.webp"
     },
     "ligue-1": {
         "id": "ligue-1",
         "name": "الدوري الفرنسي",
         "name_en": "Ligue 1",
-        "tour_id": 96,
+        "tour_id": 95,
         "comp_id": 2979,
         "country": "فرنسا",
-        "logo": "https://mediayk.gemini.media/img/yallakora/tourlogo/Ligue_128-01-2025-12-29-48.webp"
+        "logo": "https://mediayk.gemini.media/img/yallakora/tourlogo/11-9-2024-22-5-16.jpg"
     }
 }
 

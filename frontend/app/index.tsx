@@ -93,20 +93,20 @@ const LEAGUE_COLORS: Record<string, string> = {
   'ligue-1': '#091C3E',
 };
 
-const LEAGUE_ICONS: Record<string, string> = {
-  'premier-league': 'EN',
-  'la-liga': 'ES',
-  'serie-a': 'IT',
-  'bundesliga': 'DE',
-  'ligue-1': 'FR',
+const LEAGUE_FLAGS: Record<string, string> = {
+  'premier-league': '\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC65\uDB40\uDC6E\uDB40\uDC67\uDB40\uDC7F',
+  'la-liga': '\uD83C\uDDEA\uD83C\uDDF8',
+  'serie-a': '\uD83C\uDDEE\uD83C\uDDF9',
+  'bundesliga': '\uD83C\uDDE9\uD83C\uDDEA',
+  'ligue-1': '\uD83C\uDDEB\uD83C\uDDF7',
 };
 
 const DEFAULT_LEAGUES: League[] = [
   { id: 'premier-league', name: 'الإنجليزي', name_en: 'Premier League', tour_id: 93, comp_id: 2968, country: 'إنجلترا', logo: '' },
-  { id: 'la-liga', name: 'الإسباني', name_en: 'La Liga', tour_id: 95, comp_id: 2978, country: 'إسبانيا', logo: '' },
-  { id: 'serie-a', name: 'الإيطالي', name_en: 'Serie A', tour_id: 94, comp_id: 2981, country: 'إيطاليا', logo: '' },
-  { id: 'bundesliga', name: 'الألماني', name_en: 'Bundesliga', tour_id: 92, comp_id: 2980, country: 'ألمانيا', logo: '' },
-  { id: 'ligue-1', name: 'الفرنسي', name_en: 'Ligue 1', tour_id: 96, comp_id: 2979, country: 'فرنسا', logo: '' },
+  { id: 'la-liga', name: 'الإسباني', name_en: 'La Liga', tour_id: 101, comp_id: 2982, country: 'إسبانيا', logo: '' },
+  { id: 'serie-a', name: 'الإيطالي', name_en: 'Serie A', tour_id: 100, comp_id: 2981, country: 'إيطاليا', logo: '' },
+  { id: 'bundesliga', name: 'الألماني', name_en: 'Bundesliga', tour_id: 98, comp_id: 2980, country: 'ألمانيا', logo: '' },
+  { id: 'ligue-1', name: 'الفرنسي', name_en: 'Ligue 1', tour_id: 95, comp_id: 2979, country: 'فرنسا', logo: '' },
 ];
 
 // Notification Banner Component
@@ -410,7 +410,7 @@ export default function HomeScreen() {
             style={[styles.leagueButton, isSelected && { backgroundColor: leagueColor, borderColor: leagueColor }]}
             onPress={() => setSelectedLeague(league.id)}
           >
-            <Text style={[styles.leagueCountryCode, isSelected && { color: '#fff' }]}>{LEAGUE_ICONS[league.id]}</Text>
+            <Text style={[styles.leagueCountryCode, isSelected && { color: '#fff' }]}>{LEAGUE_FLAGS[league.id]}</Text>
             <Text style={[styles.leagueButtonText, isSelected && styles.leagueButtonTextActive]}>{league.name}</Text>
           </TouchableOpacity>
         );
@@ -619,6 +619,7 @@ export default function HomeScreen() {
               style={[styles.leagueTopItem, isSelected && styles.leagueTopItemActive]}
               onPress={() => setSelectedLeague(league.id)}
             >
+              <Text style={[styles.leagueTopFlag, isSelected && styles.leagueTopTextActive]}>{LEAGUE_FLAGS[league.id] || ''}</Text>
               <Text style={[styles.leagueTopText, isSelected && styles.leagueTopTextActive]}>{league.name}</Text>
               {isSelected && <View style={styles.leagueTopIndicator} />}
             </TouchableOpacity>
@@ -658,7 +659,8 @@ const styles = StyleSheet.create({
   leagueTopMenu: { flexDirection: 'row', paddingBottom: 0 },
   leagueTopItem: { flex: 1, alignItems: 'center', paddingVertical: 12, position: 'relative' as const },
   leagueTopItemActive: {},
-  leagueTopText: { fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: '600' },
+  leagueTopText: { fontSize: 11, color: 'rgba(255,255,255,0.6)', fontWeight: '600' },
+  leagueTopFlag: { fontSize: 14 },
   leagueTopTextActive: { color: '#fff', fontWeight: 'bold' },
   leagueTopIndicator: { position: 'absolute' as const, bottom: 0, left: '20%' as any, right: '20%' as any, height: 3, backgroundColor: '#fff', borderTopLeftRadius: 2, borderTopRightRadius: 2 },
 
