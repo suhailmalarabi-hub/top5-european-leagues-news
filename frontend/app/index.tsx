@@ -21,8 +21,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
+
+let Notifications: any = null;
+let Device: any = null;
+try {
+  Notifications = require('expo-notifications');
+  Device = require('expo-device');
+} catch {}
 
 // Force RTL for Arabic
 I18nManager.allowRTL(true);
@@ -246,13 +251,17 @@ const MatchCard = ({ match, color }: { match: MatchItem; color: string }) => {
   );
 };
 
-// Setup push notifications
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({ shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: true }),
-});
+// Setup push notifications (safe for Expo Go)
+if (Notifications) {
+  try {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({ shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: true }),
+    });
+  } catch {}
+}
 
 async function registerForPushNotifications() {
-  if (!Device.isDevice) return null;
+  if (!Device?.isDevice || !Notifications) return null;
   try {
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
@@ -262,7 +271,6 @@ async function registerForPushNotifications() {
     }
     if (finalStatus !== 'granted') return null;
     const tokenData = await Notifications.getExpoPushTokenAsync({ projectId: Constants.expoConfig?.extra?.eas?.projectId });
-    // Register token with backend
     try {
       await fetch(`${API_URL}/api/register-push-token`, {
         method: 'POST',
