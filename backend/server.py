@@ -228,7 +228,7 @@ async def scrape_news(league_id: str) -> List[dict]:
                 "timestamp": datetime.utcnow().isoformat()
             })
             
-            if len(news_items) >= 20:
+            if len(news_items) >= 50:
                 break
                 
         except Exception as e:
@@ -278,7 +278,7 @@ async def scrape_news(league_id: str) -> List[dict]:
                     "timestamp": datetime.utcnow().isoformat()
                 })
                 
-                if len(news_items) >= 20:
+                if len(news_items) >= 50:
                     break
                     
             except Exception as e:

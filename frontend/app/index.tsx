@@ -94,11 +94,11 @@ const LEAGUE_COLORS: Record<string, string> = {
 };
 
 const LEAGUE_FLAGS: Record<string, string> = {
-  'premier-league': '\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC65\uDB40\uDC6E\uDB40\uDC67\uDB40\uDC7F',
-  'la-liga': '\uD83C\uDDEA\uD83C\uDDF8',
-  'serie-a': '\uD83C\uDDEE\uD83C\uDDF9',
-  'bundesliga': '\uD83C\uDDE9\uD83C\uDDEA',
-  'ligue-1': '\uD83C\uDDEB\uD83C\uDDF7',
+  'premier-league': 'ENG',
+  'la-liga': 'ESP',
+  'serie-a': 'ITA',
+  'bundesliga': 'GER',
+  'ligue-1': 'FRA',
 };
 
 const DEFAULT_LEAGUES: League[] = [
@@ -293,6 +293,7 @@ export default function HomeScreen() {
   const [isSearching, setIsSearching] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [newsCounts, setNewsCounts] = useState<Record<string, number>>({});
+  const [readNewsIds, setReadNewsIds] = useState<Set<string>>(new Set());
   const [syncing, setSyncing] = useState(false);
   const spinAnim = useRef(new Animated.Value(0)).current;
 
@@ -437,8 +438,17 @@ export default function HomeScreen() {
     } catch {} finally { setIsSearching(false); }
   };
 
-  // Navigate to news detail
+  // Navigate to news detail + mark as read
   const openNewsDetail = (item: NewsItem) => {
+    // Mark as read and decrement count
+    if (!readNewsIds.has(item.id)) {
+      const newRead = new Set(readNewsIds);
+      newRead.add(item.id);
+      setReadNewsIds(newRead);
+      // Decrement the news count for this league
+      const lid = item.league_id || selectedLeague;
+      setNewsCounts(prev => ({ ...prev, [lid]: Math.max((prev[lid] || 0) - 1, 0) }));
+    }
     router.push({
       pathname: '/news-detail',
       params: {
@@ -729,12 +739,12 @@ const styles = StyleSheet.create({
 
   // League Top Menu
   leagueTopMenu: { flexDirection: 'row', paddingBottom: 0 },
-  leagueTopItem: { flex: 1, alignItems: 'center', paddingVertical: 12, position: 'relative' as const },
+  leagueTopItem: { flex: 1, alignItems: 'center', paddingVertical: 10, position: 'relative' as const, gap: 2 },
   leagueTopItemActive: {},
-  leagueTopText: { fontSize: 11, color: 'rgba(255,255,255,0.6)', fontWeight: '600' },
-  leagueTopFlag: { fontSize: 14 },
+  leagueTopText: { fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: '600' },
+  leagueTopFlag: { fontSize: 10, fontWeight: '900', color: 'rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, overflow: 'hidden' as const },
   leagueTopTextActive: { color: '#fff', fontWeight: 'bold' },
-  leagueTopIndicator: { position: 'absolute' as const, bottom: 0, left: '20%' as any, right: '20%' as any, height: 3, backgroundColor: '#fff', borderTopLeftRadius: 2, borderTopRightRadius: 2 },
+  leagueTopIndicator: { position: 'absolute' as const, bottom: 0, left: '15%' as any, right: '15%' as any, height: 3, backgroundColor: '#FFD700', borderTopLeftRadius: 2, borderTopRightRadius: 2 },
 
   // League Selector
   leagueSelector: { backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e5e5ea' },
@@ -816,14 +826,14 @@ const styles = StyleSheet.create({
   eventText: { fontSize: 11, color: '#666', textAlign: 'right' },
   cardIcon: { width: 10, height: 14, borderRadius: 2 },
 
-  // Notification
-  notificationBanner: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 999, paddingTop: 4, paddingBottom: 8, paddingHorizontal: 12 },
-  notificationContent: { flexDirection: 'row', alignItems: 'center' },
-  notificationIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
+  // Notification - looks like system push notification
+  notificationBanner: { position: 'absolute', top: 0, left: 8, right: 8, zIndex: 999, borderRadius: 14, overflow: 'hidden' as const, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 10 },
+  notificationContent: { flexDirection: 'row', alignItems: 'center', padding: 14 },
+  notificationIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginLeft: 10 },
   notificationTextWrap: { flex: 1 },
-  notificationLabel: { fontSize: 10, fontWeight: '800', color: '#FFD700' },
-  notificationText: { fontSize: 12, color: '#fff', fontWeight: '600', lineHeight: 18 },
-  notificationClose: { padding: 6 },
+  notificationLabel: { fontSize: 11, fontWeight: '800', color: '#FFD700', marginBottom: 2 },
+  notificationText: { fontSize: 13, color: '#fff', fontWeight: '600', lineHeight: 20 },
+  notificationClose: { padding: 8 },
 
   // Sync Button
   syncBtn: { padding: 6, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 20 },
