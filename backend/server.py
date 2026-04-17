@@ -688,12 +688,31 @@ async def get_news_detail(league_id: str, news_id: str):
                     html = await fetch_page(item['link'])
                     if html:
                         soup = BeautifulSoup(html, 'html.parser')
-                        # Get article body text
-                        article_body = soup.find('div', class_='articleBody') or soup.find('div', class_='newsBody') or soup.find('section', class_='articleBody')
+                        # Get article body text - try multiple selectors
+                        article_body = (
+                            soup.find('div', class_='ArticleDetails') or
+                            soup.find('div', class_='details') or
+                            soup.find('div', class_='articleBody') or
+                            soup.find('div', class_='newsBody') or
+                            soup.find('section', class_='articleBody')
+                        )
                         if article_body:
                             paragraphs = article_body.find_all('p')
-                            content = '\n'.join([p.get_text(strip=True) for p in paragraphs if p.get_text(strip=True)])
-                            detail['content'] = content
+                            content = '\n'.join([p.get_text(strip=True) for p in paragraphs if len(p.get_text(strip=True)) > 20])
+                            if content:
+                                detail['content'] = content
+                        
+                        # Fallback: get all substantial paragraphs from the page
+                        if not detail['content']:
+                            all_ps = soup.find_all('p')
+                            article_ps = []
+                            for p in all_ps:
+                                parent_cls = ' '.join(p.parent.get('class', [])) if p.parent else ''
+                                text = p.get_text(strip=True)
+                                if len(text) > 30 and ('article' in parent_cls.lower() or 'detail' in parent_cls.lower()):
+                                    article_ps.append(text)
+                            if article_ps:
+                                detail['content'] = '\n'.join(article_ps)
                         
                         # Get related images
                         related_imgs = []

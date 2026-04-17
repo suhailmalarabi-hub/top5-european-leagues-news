@@ -579,11 +579,11 @@ export default function HomeScreen() {
       {/* Header */}
       <View style={[styles.header, { backgroundColor: currentColor }]}>
         <View style={styles.headerRow}>
-          <Ionicons name="football-outline" size={26} color="#fff" />
-          <Text style={styles.headerTitle}>أخبار الدوريات الأوروبية</Text>
           <TouchableOpacity testID="search-toggle-btn" onPress={() => { setShowSearch(!showSearch); if (showSearch) { setSearchQuery(''); setSearchResults([]); Keyboard.dismiss(); } }} style={styles.searchToggleBtn}>
-            <Ionicons name={showSearch ? 'close' : 'search'} size={22} color="#fff" />
+            <Ionicons name={showSearch ? 'close' : 'search'} size={20} color="#fff" />
           </TouchableOpacity>
+          <Text style={styles.headerTitle}>أخبار الدوريات الأوروبية</Text>
+          <Ionicons name="football-outline" size={24} color="#fff" />
         </View>
         {showSearch && (
           <View style={styles.searchBar}>
@@ -608,8 +608,23 @@ export default function HomeScreen() {
         )}
       </View>
 
-      {/* League Selector */}
-      {renderLeagueSelector()}
+      {/* League Top Menu */}
+      <View style={[styles.leagueTopMenu, { backgroundColor: currentColor }]}>
+        {leagues.map((league) => {
+          const isSelected = selectedLeague === league.id;
+          return (
+            <TouchableOpacity
+              key={league.id}
+              testID={`league-btn-${league.id}`}
+              style={[styles.leagueTopItem, isSelected && styles.leagueTopItemActive]}
+              onPress={() => setSelectedLeague(league.id)}
+            >
+              <Text style={[styles.leagueTopText, isSelected && styles.leagueTopTextActive]}>{league.name}</Text>
+              {isSelected && <View style={styles.leagueTopIndicator} />}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
 
       {/* Tab Selector */}
       {renderTabSelector()}
@@ -630,14 +645,22 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f2f2f7' },
 
   // Header
-  header: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 14 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#fff', flex: 1 },
+  header: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff', textAlign: 'center', flex: 1 },
   headerSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2, marginRight: 34 },
   searchToggleBtn: { padding: 6, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 20 },
   searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6, marginTop: 10, gap: 8 },
   searchInput: { flex: 1, fontSize: 14, color: '#fff', textAlign: 'right', paddingVertical: 4 },
   searchResultsCount: { fontSize: 13, color: '#888', textAlign: 'right', marginBottom: 10, fontWeight: '600' },
+
+  // League Top Menu
+  leagueTopMenu: { flexDirection: 'row', paddingBottom: 0 },
+  leagueTopItem: { flex: 1, alignItems: 'center', paddingVertical: 12, position: 'relative' as const },
+  leagueTopItemActive: {},
+  leagueTopText: { fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: '600' },
+  leagueTopTextActive: { color: '#fff', fontWeight: 'bold' },
+  leagueTopIndicator: { position: 'absolute' as const, bottom: 0, left: '20%' as any, right: '20%' as any, height: 3, backgroundColor: '#fff', borderTopLeftRadius: 2, borderTopRightRadius: 2 },
 
   // League Selector
   leagueSelector: { backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e5e5ea' },

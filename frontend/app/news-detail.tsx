@@ -7,7 +7,6 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator,
-  Linking,
   Share,
   I18nManager,
   StatusBar,
@@ -80,10 +79,7 @@ export default function NewsDetailScreen() {
 
   const handleShare = async () => {
     try {
-      await Share.share({
-        message: `${params.title}\n\n${params.link}`,
-        title: params.title,
-      });
+      await Share.share({ message: `${params.title}`, title: params.title });
     } catch {}
   };
 
@@ -112,7 +108,7 @@ export default function NewsDetailScreen() {
           </View>
         )}
 
-        {/* League Badge */}
+        {/* League Badge + Date */}
         <View style={styles.articleMeta}>
           <View style={[styles.leagueBadge, { backgroundColor: color }]}>
             <Text style={styles.leagueBadgeText}>{leagueName}</Text>
@@ -133,30 +129,17 @@ export default function NewsDetailScreen() {
             <Text style={styles.loadingText}>جاري تحميل المقال...</Text>
           </View>
         ) : content ? (
-          <Text style={styles.articleContent}>{content}</Text>
+          <View style={styles.articleBodyWrap}>
+            {content.split('\n').filter(Boolean).map((paragraph, idx) => (
+              <Text key={idx} style={styles.articleParagraph}>{paragraph}</Text>
+            ))}
+          </View>
         ) : (
           <View style={styles.noContentWrap}>
             <Ionicons name="document-text-outline" size={40} color="#ccc" />
-            <Text style={styles.noContentText}>اضغط الزر أدناه لقراءة المقال كاملاً على يلا كورة</Text>
+            <Text style={styles.noContentText}>لا يتوفر نص المقال حالياً</Text>
           </View>
         )}
-
-        {/* Read Full Article Button */}
-        <TouchableOpacity
-          testID="read-full-btn"
-          style={[styles.readFullBtn, { backgroundColor: color }]}
-          onPress={() => Linking.openURL(params.link || '')}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.readFullBtnText}>اقرأ المقال كاملاً على يلا كورة</Text>
-          <Ionicons name="open-outline" size={18} color="#fff" />
-        </TouchableOpacity>
-
-        {/* Source */}
-        <View style={styles.sourceWrap}>
-          <Ionicons name="information-circle-outline" size={14} color="#aaa" />
-          <Text style={styles.sourceText}>المصدر: يلا كورة - www.yallakora.com</Text>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -179,11 +162,8 @@ const styles = StyleSheet.create({
   divider: { height: 3, width: 60, borderRadius: 2, marginHorizontal: 16, marginTop: 14, marginBottom: 16 },
   loadingWrap: { alignItems: 'center', paddingVertical: 30 },
   loadingText: { marginTop: 8, color: '#999', fontSize: 13 },
-  articleContent: { fontSize: 16, lineHeight: 30, color: '#333', paddingHorizontal: 16, textAlign: 'right' },
+  articleBodyWrap: { paddingHorizontal: 16, gap: 14 },
+  articleParagraph: { fontSize: 16, lineHeight: 30, color: '#333', textAlign: 'right' },
   noContentWrap: { alignItems: 'center', paddingVertical: 30, paddingHorizontal: 30 },
   noContentText: { marginTop: 10, color: '#999', fontSize: 14, textAlign: 'center', lineHeight: 22 },
-  readFullBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginHorizontal: 16, marginTop: 24, paddingVertical: 14, borderRadius: 12, gap: 8 },
-  readFullBtnText: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
-  sourceWrap: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 20, gap: 4 },
-  sourceText: { fontSize: 11, color: '#aaa' },
 });
