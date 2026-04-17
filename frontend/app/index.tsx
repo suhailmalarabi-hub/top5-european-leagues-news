@@ -111,13 +111,13 @@ const DEFAULT_LEAGUES: League[] = [
 
 // Notification Banner Component
 const NotificationBanner = ({ notification, onDismiss, color }: { notification: NewsItem | null; onDismiss: () => void; color: string }) => {
-  const slideAnim = useRef(new Animated.Value(-100)).current;
+  const slideAnim = useRef(new Animated.Value(-120)).current;
 
   useEffect(() => {
     if (notification) {
-      Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 80, friction: 10 }).start();
+      Animated.spring(slideAnim, { toValue: 44, useNativeDriver: true, tension: 80, friction: 10 }).start();
       const timer = setTimeout(() => {
-        Animated.timing(slideAnim, { toValue: -100, duration: 300, useNativeDriver: true }).start(() => onDismiss());
+        Animated.timing(slideAnim, { toValue: -120, duration: 300, useNativeDriver: true }).start(() => onDismiss());
       }, 6000);
       return () => clearTimeout(timer);
     }
@@ -126,22 +126,22 @@ const NotificationBanner = ({ notification, onDismiss, color }: { notification: 
   if (!notification) return null;
 
   return (
-    <Animated.View style={[styles.notificationBanner, { backgroundColor: color, transform: [{ translateY: slideAnim }] }]}>
+    <Animated.View style={[styles.notificationBanner, { backgroundColor: '#1a1a2e', transform: [{ translateY: slideAnim }] }]}>
       <TouchableOpacity
         testID="notification-banner"
         style={styles.notificationContent}
-        onPress={() => { Linking.openURL(notification.link); onDismiss(); }}
+        onPress={() => { onDismiss(); }}
         activeOpacity={0.8}
       >
-        <View style={styles.notificationIcon}>
-          <Ionicons name="flash" size={18} color="#FFD700" />
+        <View style={[styles.notificationIcon, { backgroundColor: color }]}>
+          <Ionicons name="flash" size={16} color="#fff" />
         </View>
         <View style={styles.notificationTextWrap}>
           <Text style={styles.notificationLabel}>خبر عاجل</Text>
           <Text style={styles.notificationText} numberOfLines={2}>{notification.title}</Text>
         </View>
         <TouchableOpacity testID="dismiss-notification-btn" onPress={onDismiss} style={styles.notificationClose}>
-          <Ionicons name="close" size={18} color="#fff" />
+          <Ionicons name="close" size={16} color="#999" />
         </TouchableOpacity>
       </TouchableOpacity>
     </Animated.View>
@@ -639,13 +639,13 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={currentColor} />
+      <StatusBar barStyle="light-content" backgroundColor="#1a1a2e" />
 
       {/* Notification Banner */}
       <NotificationBanner notification={notification} onDismiss={() => setNotification(null)} color={currentColor} />
 
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: currentColor }]}>
+      <View style={[styles.header, { backgroundColor: '#1a1a2e' }]}>
         <View style={styles.headerRow}>
           <TouchableOpacity testID="search-toggle-btn" onPress={() => { setShowSearch(!showSearch); if (showSearch) { setSearchQuery(''); setSearchResults([]); Keyboard.dismiss(); } }} style={styles.searchToggleBtn}>
             <Ionicons name={showSearch ? 'close' : 'search'} size={20} color="#fff" />
@@ -681,9 +681,10 @@ export default function HomeScreen() {
       </View>
 
       {/* League Top Menu */}
-      <View style={[styles.leagueTopMenu, { backgroundColor: currentColor }]}>
+      <View style={[styles.leagueTopMenu, { backgroundColor: '#1a1a2e' }]}>
         {leagues.map((league) => {
           const isSelected = selectedLeague === league.id;
+          const leagueColor = LEAGUE_COLORS[league.id] || '#fff';
           return (
             <TouchableOpacity
               key={league.id}
@@ -691,7 +692,7 @@ export default function HomeScreen() {
               style={[styles.leagueTopItem, isSelected && styles.leagueTopItemActive]}
               onPress={() => setSelectedLeague(league.id)}
             >
-              <Text style={[styles.leagueTopFlag, isSelected && styles.leagueTopTextActive]}>{LEAGUE_FLAGS[league.id] || ''}</Text>
+              <View style={[styles.leagueDot, { backgroundColor: leagueColor }]} />
               <Text style={[styles.leagueTopText, isSelected && styles.leagueTopTextActive]}>{league.name}</Text>
               {(newsCounts[league.id] || 0) > 0 && (
                 <View style={styles.newsCountBadge}>
@@ -739,9 +740,10 @@ const styles = StyleSheet.create({
 
   // League Top Menu
   leagueTopMenu: { flexDirection: 'row', paddingBottom: 0 },
-  leagueTopItem: { flex: 1, alignItems: 'center', paddingVertical: 10, position: 'relative' as const, gap: 2 },
+  leagueTopItem: { flex: 1, alignItems: 'center', paddingVertical: 10, position: 'relative' as const, gap: 3 },
   leagueTopItemActive: {},
-  leagueTopText: { fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: '600' },
+  leagueDot: { width: 8, height: 8, borderRadius: 4 },
+  leagueTopText: { fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: '600' },
   leagueTopFlag: { fontSize: 10, fontWeight: '900', color: 'rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, overflow: 'hidden' as const },
   leagueTopTextActive: { color: '#fff', fontWeight: 'bold' },
   leagueTopIndicator: { position: 'absolute' as const, bottom: 0, left: '15%' as any, right: '15%' as any, height: 3, backgroundColor: '#FFD700', borderTopLeftRadius: 2, borderTopRightRadius: 2 },
