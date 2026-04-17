@@ -565,7 +565,7 @@ async def get_news(league_id: str):
     # Try to get cached news first
     cached = await db.news_cache.find_one({"league_id": league_id})
     if cached and (datetime.utcnow() - cached.get('updated_at', datetime.min)).total_seconds() < 300:  # 5 min cache
-        return {"news": cached.get('items', []), "cached": True}
+        return {"news": cached.get('items', []), "cached": True, "count": len(cached.get('items', []))}
     
     # Scrape fresh news
     news_items = await scrape_news(league_id)
@@ -578,7 +578,124 @@ async def get_news(league_id: str):
             upsert=True
         )
     
-    return {"news": news_items, "cached": False}
+    return {"news": news_items, "cached": False, "count": len(news_items)}
+
+@api_router.get("/news-counts")
+async def get_news_counts():
+    """Get news count per league"""
+    counts = {}
+    for league_id in LEAGUES.keys():
+        cached = await db.news_cache.find_one({"league_id": league_id})
+        counts[league_id] = len(cached.get('items', [])) if cached else 0
+    return {"counts": counts}
+
+@api_router.get("/match-events/{match_url:path}")
+async def get_match_events(match_url: str):
+    """Scrape match events (goals, cards) from a match page"""
+    if not match_url.startswith('http'):
+        match_url = 'https://www.yallakora.com' + match_url
+    
+    html = await fetch_page(match_url)
+    if not html:
+        return {"events": [], "scorers": [], "cards": []}
+    
+    soup = BeautifulSoup(html, 'html.parser')
+    events = []
+    scorers_home = []
+    scorers_away = []
+    cards = []
+    
+    # Get scorers from matchScorer divs
+    scorer_sections = soup.find_all('div', class_='matchScorer')
+    for section in scorer_sections:
+        parent = section.find_parent('div', class_='playerScorers')
+        team_side = 'home' if parent and 'teamA' in ' '.join(parent.get('class', [])) else 'away'
+        
+        goals = section.find_all('div', class_='goal')
+        for goal in goals:
+            player_name = ''
+            goal_time = ''
+            name_span = goal.find('span', class_='playerName')
+            time_span = goal.find('span', class_='time')
+            if name_span:
+                player_name = name_span.get_text(strip=True)
+            if time_span:
+                goal_time = time_span.get_text(strip=True)
+            
+            if player_name:
+                scorer_data = {"player": player_name, "time": goal_time, "team": team_side}
+                if team_side == 'home':
+                    scorers_home.append(scorer_data)
+                else:
+                    scorers_away.append(scorer_data)
+    
+    # Get events from timeline
+    timeline = soup.find('div', class_='timeline events')
+    if timeline:
+        event_items = timeline.find_all('li')
+        for item in event_items:
+            classes = item.get('class', [])
+            if 'referee' in classes:
+                continue
+            
+            min_div = item.find('div', class_='min')
+            desc_p = item.find('p', class_='description')
+            
+            if not min_div or not desc_p:
+                continue
+            
+            minute = min_div.get_text(strip=True)
+            side = 'home' if 'right' in classes else 'away' if 'left' in classes else ''
+            
+            if 'goal' in classes:
+                player = desc_p.get_text(strip=True)
+                assister = ''
+                assist_span = desc_p.find('span', class_='assister')
+                if assist_span:
+                    assister = assist_span.get_text(strip=True).strip('()')
+                    player = player.replace(assist_span.get_text(strip=True), '').strip()
+                events.append({"type": "goal", "minute": minute, "player": player, "assist": assister, "side": side})
+            
+            elif 'yellowCard' in classes:
+                player = desc_p.get_text(strip=True)
+                events.append({"type": "yellow_card", "minute": minute, "player": player, "side": side})
+                cards.append({"type": "yellow", "minute": minute, "player": player, "side": side})
+            
+            elif 'redCard' in classes:
+                player = desc_p.get_text(strip=True)
+                events.append({"type": "red_card", "minute": minute, "player": player, "side": side})
+                cards.append({"type": "red", "minute": minute, "player": player, "side": side})
+            
+            elif 'sub' in classes:
+                sub_in = desc_p.find('span', class_='subIn')
+                sub_out = desc_p.find('span', class_='subOut')
+                events.append({
+                    "type": "substitution", "minute": minute,
+                    "player_in": sub_in.get_text(strip=True) if sub_in else '',
+                    "player_out": sub_out.get_text(strip=True) if sub_out else '',
+                    "side": side
+                })
+    
+    # Get stats
+    stats = {}
+    stats_div = soup.find('div', class_='timeline stats')
+    if stats_div:
+        stat_items = stats_div.find_all('li')
+        for stat in stat_items:
+            desc = stat.find('div', class_='desc')
+            team_a = stat.find('div', class_='teamA')
+            team_b = stat.find('div', class_='teamB')
+            if desc and team_a and team_b:
+                stat_name = desc.get_text(strip=True)
+                stats[stat_name] = {"home": team_a.get_text(strip=True), "away": team_b.get_text(strip=True)}
+    
+    return {
+        "scorers_home": scorers_home,
+        "scorers_away": scorers_away,
+        "events": events,
+        "cards": cards,
+        "stats": stats
+    }
 
 @api_router.get("/standings/{league_id}")
 async def get_standings(league_id: str):

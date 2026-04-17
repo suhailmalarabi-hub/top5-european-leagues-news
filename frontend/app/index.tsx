@@ -160,6 +160,13 @@ const MatchCard = ({ match, color }: { match: MatchItem; color: string }) => {
         {match.match_date ? (
           <Text style={styles.matchDate}>{match.match_date}</Text>
         ) : null}
+        {isLive && (
+          <View style={styles.liveBadgeHeader}>
+            <View style={styles.liveDot} />
+            <Text style={styles.liveText}>مباشر</Text>
+          </View>
+        )}
+        {isFinished && <Text style={styles.finishedBadge}>انتهت</Text>}
         {match.channel ? (
           <View style={styles.channelBadge}>
             <Ionicons name="tv-outline" size={11} color="#666" />
@@ -195,13 +202,6 @@ const MatchCard = ({ match, color }: { match: MatchItem; color: string }) => {
               <Text style={[styles.matchTimeText, { color }]}>{match.match_time}</Text>
             </View>
           )}
-          {isLive && (
-            <View style={styles.liveBadge}>
-              <View style={styles.liveDot} />
-              <Text style={styles.liveText}>مباشر</Text>
-            </View>
-          )}
-          {isFinished && <Text style={styles.finishedText}>انتهت</Text>}
         </View>
 
         {/* Away Team */}
@@ -216,6 +216,32 @@ const MatchCard = ({ match, color }: { match: MatchItem; color: string }) => {
           <Text style={styles.matchTeamName} numberOfLines={1}>{match.away_team}</Text>
         </View>
       </View>
+
+      {/* Match Events Summary */}
+      {(match as any).scorers_home?.length > 0 || (match as any).scorers_away?.length > 0 || (match as any).cards?.length > 0 ? (
+        <View style={styles.matchEventsSection}>
+          {/* Scorers */}
+          {((match as any).scorers_home || []).map((s: any, i: number) => (
+            <View key={`sh${i}`} style={styles.eventRow}>
+              <Ionicons name="football" size={12} color="#4CAF50" />
+              <Text style={styles.eventText}>{s.player} ({s.time}')</Text>
+            </View>
+          ))}
+          {((match as any).scorers_away || []).map((s: any, i: number) => (
+            <View key={`sa${i}`} style={styles.eventRow}>
+              <Ionicons name="football" size={12} color="#4CAF50" />
+              <Text style={styles.eventText}>{s.player} ({s.time}')</Text>
+            </View>
+          ))}
+          {/* Cards */}
+          {((match as any).cards || []).map((c: any, i: number) => (
+            <View key={`c${i}`} style={styles.eventRow}>
+              <View style={[styles.cardIcon, { backgroundColor: c.type === 'red' ? '#F44336' : '#FFC107' }]} />
+              <Text style={styles.eventText}>{c.player} ({c.minute}')</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 };
@@ -266,11 +292,43 @@ export default function HomeScreen() {
   const [searchResults, setSearchResults] = useState<NewsItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [newsCounts, setNewsCounts] = useState<Record<string, number>>({});
+  const [syncing, setSyncing] = useState(false);
+  const spinAnim = useRef(new Animated.Value(0)).current;
 
   // Register push notifications on mount
   useEffect(() => {
     registerForPushNotifications();
+    fetchNewsCounts();
   }, []);
+
+  // Fetch news counts for all leagues
+  const fetchNewsCounts = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/news-counts`);
+      if (res.ok) {
+        const data = await res.json();
+        setNewsCounts(data.counts || {});
+      }
+    } catch {}
+  };
+
+  // Sync all data
+  const handleSync = async () => {
+    setSyncing(true);
+    Animated.loop(Animated.timing(spinAnim, { toValue: 1, duration: 800, useNativeDriver: true })).start();
+    try {
+      await fetchNewsCounts();
+      if (activeTab === 'news') await fetchNews(selectedLeague);
+      else if (activeTab === 'standings') await fetchStandings(selectedLeague);
+      else await fetchMatches(selectedLeague);
+    } finally {
+      setSyncing(false);
+      spinAnim.setValue(0);
+    }
+  };
+
+  const spinInterpolate = spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
 
   // Fetch news
   const fetchNews = async (leagueId: string) => {
@@ -583,7 +641,11 @@ export default function HomeScreen() {
             <Ionicons name={showSearch ? 'close' : 'search'} size={20} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>أخبار الدوريات الأوروبية</Text>
-          <Ionicons name="football-outline" size={24} color="#fff" />
+          <TouchableOpacity testID="sync-btn" onPress={handleSync} style={styles.syncBtn} disabled={syncing}>
+            <Animated.View style={{ transform: [{ rotate: syncing ? spinInterpolate : '0deg' }] }}>
+              <Ionicons name="sync" size={20} color="#fff" />
+            </Animated.View>
+          </TouchableOpacity>
         </View>
         {showSearch && (
           <View style={styles.searchBar}>
@@ -621,6 +683,11 @@ export default function HomeScreen() {
             >
               <Text style={[styles.leagueTopFlag, isSelected && styles.leagueTopTextActive]}>{LEAGUE_FLAGS[league.id] || ''}</Text>
               <Text style={[styles.leagueTopText, isSelected && styles.leagueTopTextActive]}>{league.name}</Text>
+              {(newsCounts[league.id] || 0) > 0 && (
+                <View style={styles.newsCountBadge}>
+                  <Text style={styles.newsCountText}>{newsCounts[league.id]}</Text>
+                </View>
+              )}
               {isSelected && <View style={styles.leagueTopIndicator} />}
             </TouchableOpacity>
           );
@@ -637,6 +704,11 @@ export default function HomeScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[currentColor]} tintColor={currentColor} />}
       >
         {renderContent()}
+        {/* Ad Banner Placeholder */}
+        <View testID="ad-banner" style={styles.adBanner}>
+          <Text style={styles.adBannerLabel}>AD</Text>
+          <Text style={styles.adBannerText}>إعلان</Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -735,6 +807,14 @@ const styles = StyleSheet.create({
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#F44336' },
   liveText: { fontSize: 10, color: '#F44336', fontWeight: 'bold' },
   finishedText: { fontSize: 10, color: '#8e8e93', marginTop: 4 },
+  finishedBadge: { fontSize: 10, color: '#8e8e93', backgroundColor: '#f0f0f5', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
+  liveBadgeHeader: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(244,67,54,0.1)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
+
+  // Match Events
+  matchEventsSection: { borderTopWidth: 0.5, borderTopColor: '#e5e5ea', marginTop: 10, paddingTop: 8, gap: 4 },
+  eventRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 2 },
+  eventText: { fontSize: 11, color: '#666', textAlign: 'right' },
+  cardIcon: { width: 10, height: 14, borderRadius: 2 },
 
   // Notification
   notificationBanner: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 999, paddingTop: 4, paddingBottom: 8, paddingHorizontal: 12 },
@@ -744,4 +824,16 @@ const styles = StyleSheet.create({
   notificationLabel: { fontSize: 10, fontWeight: '800', color: '#FFD700' },
   notificationText: { fontSize: 12, color: '#fff', fontWeight: '600', lineHeight: 18 },
   notificationClose: { padding: 6 },
+
+  // Sync Button
+  syncBtn: { padding: 6, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 20 },
+
+  // News Count Badge
+  newsCountBadge: { position: 'absolute', top: 2, right: 4, backgroundColor: '#FF3B30', borderRadius: 8, minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
+  newsCountText: { fontSize: 9, color: '#fff', fontWeight: 'bold' },
+
+  // Ad Banner
+  adBanner: { backgroundColor: '#f0f0f5', borderRadius: 10, paddingVertical: 14, alignItems: 'center', justifyContent: 'center', marginTop: 16, borderWidth: 1, borderColor: '#e0e0e0', borderStyle: 'dashed' },
+  adBannerLabel: { fontSize: 10, color: '#aaa', fontWeight: 'bold', letterSpacing: 1 },
+  adBannerText: { fontSize: 12, color: '#bbb', marginTop: 2 },
 });
