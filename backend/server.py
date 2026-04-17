@@ -293,7 +293,7 @@ async def scrape_standings(league_id: str) -> List[dict]:
     if not league:
         return []
     
-    url = f"https://www.yallakora.com/tour-standing/{league['tour_id']}/ترتيب-الفرق"
+    url = f"https://www.yallakora.com/tour-standing/{league['tour_id']}/%D8%AA%D8%B1%D8%AA%D9%8A%D8%A8-%D8%A7%D9%84%D9%81%D8%B1%D9%82"
     html = await fetch_page(url)
     if not html:
         url = f"https://www.yallakora.com/tour/{league['tour_id']}"
@@ -304,35 +304,47 @@ async def scrape_standings(league_id: str) -> List[dict]:
     soup = BeautifulSoup(html, 'html.parser')
     standings = []
     
-    # Find standings table rows
-    rows = soup.find_all('tr')
+    # Find standings rows with class 'wRow'
+    rows = soup.find_all('div', class_='wRow')
     
     for row in rows:
         try:
-            cells = row.find_all('td')
-            if len(cells) < 8:
+            # Get all items
+            items = row.find_all('div', class_='item')
+            if len(items) < 9:
                 continue
             
             # Extract position
-            pos_text = cells[0].get_text(strip=True)
+            pos_item = row.find('div', class_='arrng')
+            if not pos_item:
+                continue
+            pos_text = pos_item.get_text(strip=True)
             if not pos_text.isdigit():
                 continue
             position = int(pos_text)
             
             # Extract team name and logo
-            team_cell = cells[1]
-            team_name = team_cell.get_text(strip=True)
-            team_img = team_cell.find('img')
-            team_logo = team_img.get('src', '') if team_img else None
+            team_item = row.find('div', class_='team')
+            if not team_item:
+                continue
             
-            # Extract stats
-            played = int(cells[2].get_text(strip=True) or 0)
-            won = int(cells[3].get_text(strip=True) or 0)
-            drawn = int(cells[4].get_text(strip=True) or 0)
-            lost = int(cells[5].get_text(strip=True) or 0)
-            goals_for = int(cells[6].get_text(strip=True) or 0)
-            goals_against = int(cells[7].get_text(strip=True) or 0)
-            points = int(cells[-1].get_text(strip=True) or 0)
+            team_link = team_item.find('a')
+            team_name = team_link.find('p').get_text(strip=True) if team_link and team_link.find('p') else team_item.get_text(strip=True)
+            team_img = team_item.find('img')
+            team_logo = team_img.get('src', '').replace('\\', '/') if team_img else None
+            
+            # Extract stats from dtls items
+            dtls_items = row.find_all('div', class_='dtls')
+            if len(dtls_items) >= 7:
+                played = int(dtls_items[0].get_text(strip=True) or 0)
+                won = int(dtls_items[1].get_text(strip=True) or 0)
+                drawn = int(dtls_items[2].get_text(strip=True) or 0)
+                lost = int(dtls_items[3].get_text(strip=True) or 0)
+                goals_for = int(dtls_items[4].get_text(strip=True) or 0)
+                goals_against = int(dtls_items[5].get_text(strip=True) or 0)
+                points = int(dtls_items[6].get_text(strip=True) or 0)
+            else:
+                continue
             
             standings.append({
                 "position": position,
@@ -359,7 +371,8 @@ async def scrape_matches(league_id: str) -> List[dict]:
     if not league:
         return []
     
-    url = f"https://www.yallakora.com/tour-fixtures/{league['tour_id']}/نتائج-المباريات"
+    # Try the standings page first since it has upcoming matches in sidebar
+    url = f"https://www.yallakora.com/tour-standing/{league['tour_id']}/%D8%AA%D8%B1%D8%AA%D9%8A%D8%A8-%D8%A7%D9%84%D9%81%D8%B1%D9%82"
     html = await fetch_page(url)
     if not html:
         url = f"https://www.yallakora.com/tour/{league['tour_id']}"
@@ -370,61 +383,166 @@ async def scrape_matches(league_id: str) -> List[dict]:
     soup = BeautifulSoup(html, 'html.parser')
     matches = []
     
-    # Find match elements
-    match_elements = soup.find_all(['div', 'a'], class_=lambda x: x and ('match' in str(x).lower() or 'game' in str(x).lower()))
+    # Find match elements in tourMatches section
+    match_section = soup.find('section', class_='tourMatches')
+    if not match_section:
+        # Try finding in matchesSlider
+        match_section = soup.find('div', class_='matchesSlider')
     
-    for match_elem in match_elements:
-        try:
-            # Try to extract team names
-            teams = match_elem.find_all(['span', 'div'], class_=lambda x: x and 'team' in str(x).lower())
-            if len(teams) < 2:
-                continue
-            
-            home_team = teams[0].get_text(strip=True)
-            away_team = teams[1].get_text(strip=True)
-            
-            # Get scores if available
-            scores = match_elem.find_all(['span', 'div'], class_=lambda x: x and 'score' in str(x).lower())
-            home_score = None
-            away_score = None
-            if len(scores) >= 2:
-                try:
-                    home_score = int(scores[0].get_text(strip=True))
-                    away_score = int(scores[1].get_text(strip=True))
-                except:
-                    pass
-            
-            # Get team logos
-            imgs = match_elem.find_all('img')
-            home_logo = imgs[0].get('src', '') if len(imgs) > 0 else None
-            away_logo = imgs[1].get('src', '') if len(imgs) > 1 else None
-            
-            # Get time/date
-            time_elem = match_elem.find(['span', 'div'], class_=lambda x: x and ('time' in str(x).lower() or 'date' in str(x).lower()))
-            match_time = time_elem.get_text(strip=True) if time_elem else "TBD"
-            
-            status = "finished" if home_score is not None else "upcoming"
-            
-            matches.append({
-                "id": str(uuid.uuid4()),
-                "home_team": home_team,
-                "away_team": away_team,
-                "home_logo": home_logo,
-                "away_logo": away_logo,
-                "home_score": home_score,
-                "away_score": away_score,
-                "match_time": match_time,
-                "match_date": datetime.now().strftime("%Y-%m-%d"),
-                "status": status,
-                "league_id": league_id
-            })
-            
-            if len(matches) >= 10:
-                break
+    if match_section:
+        match_items = match_section.find_all('li')
+        for item in match_items:
+            try:
+                match_div = item.find('div', class_='match')
+                if not match_div:
+                    continue
                 
-        except Exception as e:
-            logger.error(f"Error parsing match: {e}")
-            continue
+                # Extract teams
+                team_a_div = match_div.find('div', class_='teamA')
+                team_b_div = match_div.find('div', class_='teamB')
+                
+                if not team_a_div or not team_b_div:
+                    continue
+                
+                # Get team names
+                home_team_link = team_a_div.find('a', class_='team')
+                away_team_link = team_b_div.find('a', class_='team')
+                
+                home_team = home_team_link.get_text(strip=True) if home_team_link else team_a_div.find('p').get_text(strip=True) if team_a_div.find('p') else ''
+                away_team = away_team_link.get_text(strip=True) if away_team_link else team_b_div.find('p').get_text(strip=True) if team_b_div.find('p') else ''
+                
+                if not home_team or not away_team:
+                    continue
+                
+                # Get team logos
+                home_img = team_a_div.find('img')
+                away_img = team_b_div.find('img')
+                home_logo = home_img.get('src', '').replace('\\', '/') if home_img else None
+                away_logo = away_img.get('src', '').replace('\\', '/') if away_img else None
+                
+                # Get scores
+                home_score = None
+                away_score = None
+                result_div = match_div.find('div', class_='resultDiv')
+                if result_div:
+                    score_a = result_div.find('span', class_='LiveTeamA')
+                    score_b = result_div.find('span', class_='LiveTeamB')
+                    if score_a and score_b:
+                        try:
+                            home_score = int(score_a.get_text(strip=True))
+                            away_score = int(score_b.get_text(strip=True))
+                        except ValueError:
+                            pass
+                
+                # Get time
+                time_span = match_div.find('span', class_='time') or (result_div.find('span', class_='time') if result_div else None)
+                match_time = time_span.get_text(strip=True) if time_span else 'TBD'
+                
+                # Get date and channel from info div
+                info_div = item.find('div', class_='info')
+                match_date = ''
+                channel = ''
+                if info_div:
+                    date_elem = info_div.find('date')
+                    if date_elem:
+                        match_date = date_elem.get_text(strip=True)
+                    
+                    channel_elem = info_div.find('span', class_='icon-tv')
+                    if channel_elem:
+                        channel = channel_elem.get_text(strip=True)
+                
+                # Determine status
+                status = 'finished' if home_score is not None else 'upcoming'
+                
+                matches.append({
+                    "id": str(uuid.uuid4()),
+                    "home_team": home_team,
+                    "away_team": away_team,
+                    "home_logo": home_logo,
+                    "away_logo": away_logo,
+                    "home_score": home_score,
+                    "away_score": away_score,
+                    "match_time": match_time,
+                    "match_date": match_date,
+                    "channel": channel,
+                    "status": status,
+                    "league_id": league_id
+                })
+                
+            except Exception as e:
+                logger.error(f"Error parsing match: {e}")
+                continue
+    
+    # Also parse matches from the matchesSlider (today's matches)
+    slider = soup.find('div', class_='matchesSlider')
+    if slider:
+        slider_items = slider.find_all('div', class_='matchesSliderLi')
+        league_name = league['name']
+        
+        for item in slider_items:
+            try:
+                tour_name = item.find('div', class_='tourName')
+                if tour_name and league_name not in tour_name.get_text():
+                    continue
+                
+                team_a = item.find('div', class_='teamA')
+                team_b = item.find('div', class_='teamB')
+                
+                if not team_a or not team_b:
+                    continue
+                
+                home_team = team_a.find('p').get_text(strip=True) if team_a.find('p') else ''
+                away_team = team_b.find('p').get_text(strip=True) if team_b.find('p') else ''
+                
+                if not home_team or not away_team:
+                    continue
+                
+                # Check if already added
+                already_exists = any(m['home_team'] == home_team and m['away_team'] == away_team for m in matches)
+                if already_exists:
+                    continue
+                
+                home_img = team_a.find('img')
+                away_img = team_b.find('img')
+                home_logo = home_img.get('src', '').replace('\\', '/') if home_img else None
+                away_logo = away_img.get('src', '').replace('\\', '/') if away_img else None
+                
+                home_score = None
+                away_score = None
+                score_a = item.find('span', class_='LiveTeamA')
+                score_b = item.find('span', class_='LiveTeamB')
+                if score_a and score_b:
+                    try:
+                        home_score = int(score_a.get_text(strip=True))
+                        away_score = int(score_b.get_text(strip=True))
+                    except ValueError:
+                        pass
+                
+                time_span = item.find('span', class_='time')
+                match_time = time_span.get_text(strip=True) if time_span else 'TBD'
+                
+                status_elem = item.find('span', class_='status')
+                is_done = 'done' in item.get('class', [])
+                status = 'finished' if is_done else ('live' if status_elem and status_elem.get_text(strip=True) else 'upcoming')
+                
+                matches.append({
+                    "id": str(uuid.uuid4()),
+                    "home_team": home_team,
+                    "away_team": away_team,
+                    "home_logo": home_logo,
+                    "away_logo": away_logo,
+                    "home_score": home_score,
+                    "away_score": away_score,
+                    "match_time": match_time,
+                    "match_date": datetime.now().strftime("%d/%m/%Y"),
+                    "channel": "",
+                    "status": status,
+                    "league_id": league_id
+                })
+                
+            except Exception as e:
+                logger.error(f"Error parsing slider match: {e}")
+                continue
     
     return matches
 
