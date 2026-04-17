@@ -14,11 +14,15 @@ import {
   Linking,
   Platform,
   Animated,
-  AppState,
+  TextInput,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
 
 // Force RTL for Arabic
 I18nManager.allowRTL(true);
@@ -216,7 +220,36 @@ const MatchCard = ({ match, color }: { match: MatchItem; color: string }) => {
   );
 };
 
+// Setup push notifications
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({ shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: true }),
+});
+
+async function registerForPushNotifications() {
+  if (!Device.isDevice) return null;
+  try {
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    if (finalStatus !== 'granted') return null;
+    const tokenData = await Notifications.getExpoPushTokenAsync({ projectId: Constants.expoConfig?.extra?.eas?.projectId });
+    // Register token with backend
+    try {
+      await fetch(`${API_URL}/api/register-push-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: tokenData.data }),
+      });
+    } catch {}
+    return tokenData.data;
+  } catch { return null; }
+}
+
 export default function HomeScreen() {
+  const router = useRouter();
   const [selectedLeague, setSelectedLeague] = useState<string>('premier-league');
   const [activeTab, setActiveTab] = useState<'news' | 'standings' | 'matches'>('news');
   const [leagues] = useState<League[]>(DEFAULT_LEAGUES);
@@ -229,6 +262,15 @@ export default function HomeScreen() {
   const [notification, setNotification] = useState<NewsItem | null>(null);
   const [seenNewsIds, setSeenNewsIds] = useState<Set<string>>(new Set());
   const notifTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<NewsItem[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+
+  // Register push notifications on mount
+  useEffect(() => {
+    registerForPushNotifications();
+  }, []);
 
   // Fetch news
   const fetchNews = async (leagueId: string) => {
@@ -323,6 +365,35 @@ export default function HomeScreen() {
     setRefreshing(false);
   }, [selectedLeague, activeTab]);
 
+  // Search news
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+    if (query.length < 2) { setSearchResults([]); setIsSearching(false); return; }
+    setIsSearching(true);
+    try {
+      const res = await fetch(`${API_URL}/api/search?q=${encodeURIComponent(query)}&league_id=${selectedLeague}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSearchResults(data.results || []);
+      }
+    } catch {} finally { setIsSearching(false); }
+  };
+
+  // Navigate to news detail
+  const openNewsDetail = (item: NewsItem) => {
+    router.push({
+      pathname: '/news-detail',
+      params: {
+        id: item.id,
+        title: item.title,
+        image_url: item.image_url || '',
+        link: item.link,
+        league_id: item.league_id || selectedLeague,
+        date: item.date || '',
+      },
+    });
+  };
+
   const currentColor = LEAGUE_COLORS[selectedLeague] || '#1a5f2a';
 
   // --- RENDER FUNCTIONS ---
@@ -372,7 +443,7 @@ export default function HomeScreen() {
       key={item.id}
       testID={`news-card-${item.id}`}
       style={styles.newsCard}
-      onPress={() => Linking.openURL(item.link)}
+      onPress={() => openNewsDetail(item)}
       activeOpacity={0.8}
     >
       {item.image_url ? (
@@ -480,8 +551,16 @@ export default function HomeScreen() {
       );
     }
     if (activeTab === 'news') {
-      if (news.length === 0) return <View style={styles.centerContainer}><Ionicons name="newspaper-outline" size={48} color="#999" /><Text style={styles.emptyText}>لا توجد أخبار متاحة</Text></View>;
-      return <View>{news.map(renderNewsItem)}</View>;
+      // Show search results if searching
+      const displayNews = searchQuery.length >= 2 ? searchResults : news;
+      if (displayNews.length === 0) {
+        const emptyMsg = searchQuery.length >= 2 ? `لا توجد نتائج لـ "${searchQuery}"` : 'لا توجد أخبار متاحة';
+        return <View style={styles.centerContainer}><Ionicons name="newspaper-outline" size={48} color="#999" /><Text style={styles.emptyText}>{emptyMsg}</Text></View>;
+      }
+      if (searchQuery.length >= 2) {
+        return <View><Text style={styles.searchResultsCount}>نتائج البحث: {searchResults.length}</Text>{displayNews.map(renderNewsItem)}</View>;
+      }
+      return <View>{displayNews.map(renderNewsItem)}</View>;
     }
     if (activeTab === 'standings') {
       if (standings.length === 0) return <View style={styles.centerContainer}><Ionicons name="trophy-outline" size={48} color="#999" /><Text style={styles.emptyText}>لا يوجد ترتيب متاح</Text></View>;
@@ -502,8 +581,31 @@ export default function HomeScreen() {
         <View style={styles.headerRow}>
           <Ionicons name="football-outline" size={26} color="#fff" />
           <Text style={styles.headerTitle}>أخبار الدوريات الأوروبية</Text>
+          <TouchableOpacity testID="search-toggle-btn" onPress={() => { setShowSearch(!showSearch); if (showSearch) { setSearchQuery(''); setSearchResults([]); Keyboard.dismiss(); } }} style={styles.searchToggleBtn}>
+            <Ionicons name={showSearch ? 'close' : 'search'} size={22} color="#fff" />
+          </TouchableOpacity>
         </View>
-        <Text style={styles.headerSubtitle}>من يلا كورة</Text>
+        {showSearch && (
+          <View style={styles.searchBar}>
+            <Ionicons name="search" size={18} color="#999" />
+            <TextInput
+              testID="search-input"
+              style={styles.searchInput}
+              placeholder="ابحث في الأخبار..."
+              placeholderTextColor="#999"
+              value={searchQuery}
+              onChangeText={handleSearch}
+              autoFocus
+              returnKeyType="search"
+            />
+            {isSearching && <ActivityIndicator size="small" color="#fff" />}
+            {searchQuery.length > 0 && !isSearching && (
+              <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchResults([]); }}>
+                <Ionicons name="close-circle" size={18} color="#ccc" />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </View>
 
       {/* League Selector */}
@@ -530,8 +632,12 @@ const styles = StyleSheet.create({
   // Header
   header: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 14 },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#fff', flex: 1 },
   headerSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2, marginRight: 34 },
+  searchToggleBtn: { padding: 6, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 20 },
+  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6, marginTop: 10, gap: 8 },
+  searchInput: { flex: 1, fontSize: 14, color: '#fff', textAlign: 'right', paddingVertical: 4 },
+  searchResultsCount: { fontSize: 13, color: '#888', textAlign: 'right', marginBottom: 10, fontWeight: '600' },
 
   // League Selector
   leagueSelector: { backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e5e5ea' },

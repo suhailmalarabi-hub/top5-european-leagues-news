@@ -270,3 +270,205 @@ class TestAllNewsEndpoint:
             print(f"✓ All news: {len(news_items)} items from {len(league_ids)} leagues")
         else:
             print("⚠ All news: 0 items")
+
+class TestSearchEndpoint:
+    """Test /api/search endpoint - NEW FEATURE"""
+    
+    def test_search_liverpool(self):
+        """Test GET /api/search?q=ليفربول returns Liverpool-related news"""
+        query = "ليفربول"
+        response = requests.get(f"{BASE_URL}/api/search?q={query}")
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert 'results' in data
+        assert 'query' in data
+        assert 'count' in data
+        assert data['query'] == query
+        
+        results = data['results']
+        assert isinstance(results, list)
+        
+        # Verify results contain the search term
+        if len(results) > 0:
+            for item in results:
+                assert 'id' in item
+                assert 'title' in item
+                assert 'link' in item
+                assert 'league_id' in item
+                assert 'league_name' in item
+                # Check if query is in title
+                assert query in item['title'], f"Query '{query}' not found in title: {item['title']}"
+            print(f"✓ Search 'ليفربول': {len(results)} results found")
+        else:
+            print("⚠ Search 'ليفربول': 0 results (may need more news data)")
+    
+    def test_search_salah(self):
+        """Test GET /api/search?q=صلاح returns Salah-related news"""
+        query = "صلاح"
+        response = requests.get(f"{BASE_URL}/api/search?q={query}")
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert 'results' in data
+        assert 'query' in data
+        assert 'count' in data
+        assert data['query'] == query
+        
+        results = data['results']
+        assert isinstance(results, list)
+        
+        if len(results) > 0:
+            for item in results:
+                assert query in item['title'], f"Query '{query}' not found in title: {item['title']}"
+            print(f"✓ Search 'صلاح': {len(results)} results found")
+        else:
+            print("⚠ Search 'صلاح': 0 results")
+    
+    def test_search_with_league_filter(self):
+        """Test GET /api/search?q=test&league_id=premier-league filters by league"""
+        query = "ليفربول"
+        response = requests.get(f"{BASE_URL}/api/search?q={query}&league_id=premier-league")
+        assert response.status_code == 200
+        
+        data = response.json()
+        results = data['results']
+        
+        # All results should be from premier-league
+        if len(results) > 0:
+            for item in results:
+                assert item['league_id'] == 'premier-league', f"Expected premier-league, got {item['league_id']}"
+            print(f"✓ Search with league filter: {len(results)} results from premier-league only")
+        else:
+            print("⚠ Search with league filter: 0 results")
+    
+    def test_search_short_query(self):
+        """Test GET /api/search?q=a returns 400 for query < 2 chars"""
+        response = requests.get(f"{BASE_URL}/api/search?q=a")
+        assert response.status_code == 400
+        data = response.json()
+        assert 'detail' in data
+        print("✓ Search with short query returns 400")
+    
+    def test_search_no_results(self):
+        """Test GET /api/search?q=xyzabc123 returns empty results"""
+        query = "xyzabc123nonexistent"
+        response = requests.get(f"{BASE_URL}/api/search?q={query}")
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert data['count'] == 0
+        assert len(data['results']) == 0
+        print("✓ Search with no matches returns empty results")
+
+class TestNewsDetailEndpoint:
+    """Test /api/news-detail/{league_id}/{news_id} endpoint - NEW FEATURE"""
+    
+    def test_get_news_detail(self):
+        """Test GET /api/news-detail/{league_id}/{news_id} returns article detail"""
+        # First get a news item to get a valid ID
+        news_response = requests.get(f"{BASE_URL}/api/news/premier-league")
+        assert news_response.status_code == 200
+        
+        news_data = news_response.json()
+        news_items = news_data['news']
+        
+        if len(news_items) > 0:
+            first_news = news_items[0]
+            news_id = first_news['id']
+            league_id = first_news['league_id']
+            
+            # Now get the detail
+            detail_response = requests.get(f"{BASE_URL}/api/news-detail/{league_id}/{news_id}")
+            assert detail_response.status_code == 200
+            
+            detail_data = detail_response.json()
+            assert 'article' in detail_data
+            
+            article = detail_data['article']
+            assert article['id'] == news_id
+            assert article['title'] == first_news['title']
+            assert article['link'] == first_news['link']
+            
+            # Content is optional (may be None if scraping fails)
+            print(f"✓ News detail: Article retrieved successfully")
+            if detail_data.get('content'):
+                print(f"  Content length: {len(detail_data['content'])} chars")
+            else:
+                print("  Content: Not available (scraping may have failed)")
+        else:
+            pytest.skip("No news items available to test detail endpoint")
+    
+    def test_get_news_detail_invalid_league(self):
+        """Test GET /api/news-detail/invalid-league/123 returns 404"""
+        response = requests.get(f"{BASE_URL}/api/news-detail/invalid-league/123")
+        assert response.status_code == 404
+        print("✓ News detail with invalid league returns 404")
+    
+    def test_get_news_detail_invalid_id(self):
+        """Test GET /api/news-detail/premier-league/invalid-id returns 404"""
+        response = requests.get(f"{BASE_URL}/api/news-detail/premier-league/nonexistent-id-12345")
+        assert response.status_code == 404
+        print("✓ News detail with invalid ID returns 404")
+
+class TestPushTokenEndpoint:
+    """Test /api/register-push-token endpoint - NEW FEATURE"""
+    
+    def test_register_push_token(self):
+        """Test POST /api/register-push-token registers a token"""
+        token_data = {
+            "token": "ExponentPushToken[test-token-12345]",
+            "leagues": ["premier-league", "la-liga"]
+        }
+        
+        response = requests.post(
+            f"{BASE_URL}/api/register-push-token",
+            json=token_data,
+            headers={"Content-Type": "application/json"}
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert 'status' in data
+        assert data['status'] == 'registered'
+        print("✓ Push token registration successful")
+    
+    def test_register_push_token_no_token(self):
+        """Test POST /api/register-push-token without token returns 400"""
+        response = requests.post(
+            f"{BASE_URL}/api/register-push-token",
+            json={},
+            headers={"Content-Type": "application/json"}
+        )
+        assert response.status_code == 400
+        data = response.json()
+        assert 'detail' in data
+        print("✓ Push token registration without token returns 400")
+    
+    def test_register_push_token_update(self):
+        """Test POST /api/register-push-token updates existing token"""
+        token_data = {
+            "token": "ExponentPushToken[test-token-update-67890]",
+            "leagues": ["premier-league"]
+        }
+        
+        # Register first time
+        response1 = requests.post(
+            f"{BASE_URL}/api/register-push-token",
+            json=token_data,
+            headers={"Content-Type": "application/json"}
+        )
+        assert response1.status_code == 200
+        
+        # Update with different leagues
+        token_data['leagues'] = ["premier-league", "la-liga", "serie-a"]
+        response2 = requests.post(
+            f"{BASE_URL}/api/register-push-token",
+            json=token_data,
+            headers={"Content-Type": "application/json"}
+        )
+        assert response2.status_code == 200
+        
+        data = response2.json()
+        assert data['status'] == 'registered'
+        print("✓ Push token update successful")

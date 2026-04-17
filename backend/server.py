@@ -643,6 +643,87 @@ async def get_all_news():
     all_news.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
     return {"news": all_news[:25]}  # Return top 25
 
+@api_router.get("/search")
+async def search_news(q: str, league_id: Optional[str] = None):
+    """Search news by query string"""
+    if not q or len(q) < 2:
+        raise HTTPException(status_code=400, detail="Query must be at least 2 characters")
+    
+    results = []
+    leagues_to_search = [league_id] if league_id and league_id in LEAGUES else list(LEAGUES.keys())
+    
+    for lid in leagues_to_search:
+        try:
+            # Check cache first
+            cached = await db.news_cache.find_one({"league_id": lid})
+            if cached:
+                items = cached.get('items', [])
+            else:
+                items = await scrape_news(lid)
+            
+            for item in items:
+                if q in item.get('title', ''):
+                    item['league_name'] = LEAGUES[lid]['name']
+                    results.append(item)
+        except Exception as e:
+            logger.error(f"Error searching in {lid}: {e}")
+    
+    return {"results": results, "query": q, "count": len(results)}
+
+@api_router.get("/news-detail/{league_id}/{news_id}")
+async def get_news_detail(league_id: str, news_id: str):
+    """Get detail of a specific news article by scraping its page"""
+    if league_id not in LEAGUES:
+        raise HTTPException(status_code=404, detail="League not found")
+    
+    # Check cache for this news item
+    cached = await db.news_cache.find_one({"league_id": league_id})
+    if cached:
+        items = cached.get('items', [])
+        for item in items:
+            if item.get('id') == news_id:
+                # Try to scrape more details from the article page
+                detail = {"article": item, "content": None}
+                try:
+                    html = await fetch_page(item['link'])
+                    if html:
+                        soup = BeautifulSoup(html, 'html.parser')
+                        # Get article body text
+                        article_body = soup.find('div', class_='articleBody') or soup.find('div', class_='newsBody') or soup.find('section', class_='articleBody')
+                        if article_body:
+                            paragraphs = article_body.find_all('p')
+                            content = '\n'.join([p.get_text(strip=True) for p in paragraphs if p.get_text(strip=True)])
+                            detail['content'] = content
+                        
+                        # Get related images
+                        related_imgs = []
+                        img_tags = soup.find_all('img', src=True)
+                        for img in img_tags:
+                            src = img.get('src', '').replace('\\', '/')
+                            if 'yallakora' in src and 'wide' in src and src not in related_imgs:
+                                related_imgs.append(src)
+                        detail['related_images'] = related_imgs[:5]
+                except Exception as e:
+                    logger.error(f"Error fetching article detail: {e}")
+                
+                return detail
+    
+    raise HTTPException(status_code=404, detail="News not found")
+
+@api_router.post("/register-push-token")
+async def register_push_token(token_data: dict):
+    """Register a push notification token"""
+    token = token_data.get('token')
+    if not token:
+        raise HTTPException(status_code=400, detail="Token required")
+    
+    await db.push_tokens.update_one(
+        {"token": token},
+        {"$set": {"token": token, "updated_at": datetime.utcnow(), "leagues": token_data.get('leagues', list(LEAGUES.keys()))}},
+        upsert=True
+    )
+    return {"status": "registered"}
+
 # Include the router in the main app
 app.include_router(api_router)
 

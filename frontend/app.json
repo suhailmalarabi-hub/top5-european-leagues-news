@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "frontend",
-    "slug": "frontend",
+    "name": "أخبار الدوريات الأوروبية",
+    "slug": "european-leagues-news",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
