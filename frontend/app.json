@@ -37,10 +37,18 @@
     ],
     "extra": {
       "admob": {
-        "appId": "ca-app-pub-7650114689148142~1322307253",
-        "bannerId": "ca-app-pub-7650114689148142/5665936435",
-        "interstitialId": "ca-app-pub-7650114689148142/8100528086",
-        "nativeAdvancedId": "ca-app-pub-7650114689148142/9037145747"
+        "ios": {
+          "appId": "ca-app-pub-7650114689148142~1322307253",
+          "bannerId": "ca-app-pub-7650114689148142/5665936435",
+          "interstitialId": "ca-app-pub-7650114689148142/8100528086",
+          "nativeAdvancedId": "ca-app-pub-7650114689148142/9037145747"
+        },
+        "android": {
+          "appId": "ca-app-pub-7650114689148142~1322307253",
+          "bannerId": "ca-app-pub-7650114689148142/5665936435",
+          "interstitialId": "ca-app-pub-7650114689148142/8100528086",
+          "nativeAdvancedId": "ca-app-pub-7650114689148142/9037145747"
+        }
       }
     },
     "experiments": {
