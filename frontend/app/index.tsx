@@ -639,13 +639,13 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1a1a2e" />
+      <StatusBar barStyle="light-content" backgroundColor="#024494" translucent={false} />
 
       {/* Notification Banner */}
-      <NotificationBanner notification={notification} onDismiss={() => setNotification(null)} color={currentColor} />
+      <NotificationBanner notification={notification} onDismiss={() => setNotification(null)} color="#024494" />
 
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: '#1a1a2e' }]}>
+      <View style={styles.header}>
         <View style={styles.headerRow}>
           <TouchableOpacity testID="search-toggle-btn" onPress={() => { setShowSearch(!showSearch); if (showSearch) { setSearchQuery(''); setSearchResults([]); Keyboard.dismiss(); } }} style={styles.searchToggleBtn}>
             <Ionicons name={showSearch ? 'close' : 'search'} size={20} color="#fff" />
@@ -681,7 +681,7 @@ export default function HomeScreen() {
       </View>
 
       {/* League Top Menu */}
-      <View style={[styles.leagueTopMenu, { backgroundColor: '#1a1a2e' }]}>
+      <View style={styles.leagueTopMenu}>
         {leagues.map((league) => {
           const isSelected = selectedLeague === league.id;
           return (
@@ -728,7 +728,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f2f2f7' },
 
   // Header
-  header: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8 },
+  header: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8, backgroundColor: '#024494' },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff', textAlign: 'center', flex: 1 },
   headerSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2, marginRight: 34 },
@@ -738,15 +738,15 @@ const styles = StyleSheet.create({
   searchResultsCount: { fontSize: 13, color: '#888', textAlign: 'right', marginBottom: 10, fontWeight: '600' },
 
   // League Top Menu
-  leagueTopMenu: { flexDirection: 'row', paddingBottom: 0, paddingTop: 4 },
-  leagueTopItem: { flex: 1, alignItems: 'center', paddingVertical: 10, position: 'relative' as const, gap: 4 },
+  leagueTopMenu: { flexDirection: 'row', paddingBottom: 0, paddingTop: 6, backgroundColor: '#024494', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.15)' },
+  leagueTopItem: { flex: 1, alignItems: 'center', paddingVertical: 8, position: 'relative' as const, gap: 4 },
   leagueTopItemActive: {},
   leagueDot: { width: 8, height: 8, borderRadius: 4 },
-  leagueFlag: { width: 24, height: 16, borderRadius: 2 },
-  leagueTopText: { fontSize: 13, color: 'rgba(255,255,255,0.45)', fontWeight: '700' },
+  leagueFlag: { width: 18, height: 12, borderRadius: 1 },
+  leagueTopText: { fontSize: 12, color: 'rgba(255,255,255,0.5)', fontWeight: '700' },
   leagueTopFlag: { fontSize: 10, fontWeight: '900', color: 'rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, overflow: 'hidden' as const },
-  leagueTopTextActive: { color: '#fff', fontWeight: '900', fontSize: 14 },
-  leagueTopIndicator: { position: 'absolute' as const, bottom: 0, left: '10%' as any, right: '10%' as any, height: 3, backgroundColor: '#FFD700', borderTopLeftRadius: 2, borderTopRightRadius: 2 },
+  leagueTopTextActive: { color: '#fff', fontWeight: '900', fontSize: 13 },
+  leagueTopIndicator: { position: 'absolute' as const, bottom: 0, left: '15%' as any, right: '15%' as any, height: 3, backgroundColor: '#FFD700', borderTopLeftRadius: 2, borderTopRightRadius: 2 },
 
   // League Selector
   leagueSelector: { backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e5e5ea' },
