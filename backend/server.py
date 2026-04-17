@@ -249,8 +249,11 @@ async def scrape_news(league_id: str) -> List[dict]:
                 image_url = None
                 if img:
                     image_url = img.get('src', '') or img.get('data-src', '')
-                    if image_url and not image_url.startswith('http'):
-                        image_url = 'https:' + image_url if image_url.startswith('//') else 'https://www.yallakora.com' + image_url
+                    if image_url:
+                        # Fix backslashes in URL
+                        image_url = image_url.replace('\\', '/')
+                        if not image_url.startswith('http'):
+                            image_url = 'https:' + image_url if image_url.startswith('//') else 'https://www.yallakora.com' + image_url
                 
                 title_elem = container.find('p')
                 if not title_elem:
