@@ -647,7 +647,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.outerContainer}>
-      <StatusBar barStyle="light-content" backgroundColor="#024494" translucent={false} />
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" translucent={false} />
       <SafeAreaView style={styles.safeArea}>
 
       {/* Notification Banner */}
@@ -735,7 +735,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  outerContainer: { flex: 1, backgroundColor: '#024494' },
+  outerContainer: { flex: 1, backgroundColor: '#fff' },
   safeArea: { flex: 1, backgroundColor: '#f2f2f7' },
 
   // Header
