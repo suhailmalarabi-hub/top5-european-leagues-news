@@ -94,11 +94,11 @@ const LEAGUE_COLORS: Record<string, string> = {
 };
 
 const LEAGUE_FLAGS: Record<string, string> = {
-  'premier-league': 'ENG',
-  'la-liga': 'ESP',
-  'serie-a': 'ITA',
-  'bundesliga': 'GER',
-  'ligue-1': 'FRA',
+  'premier-league': 'https://flagcdn.com/w40/gb-eng.png',
+  'la-liga': 'https://flagcdn.com/w40/es.png',
+  'serie-a': 'https://flagcdn.com/w40/it.png',
+  'bundesliga': 'https://flagcdn.com/w40/de.png',
+  'ligue-1': 'https://flagcdn.com/w40/fr.png',
 };
 
 const DEFAULT_LEAGUES: League[] = [
@@ -684,7 +684,6 @@ export default function HomeScreen() {
       <View style={[styles.leagueTopMenu, { backgroundColor: '#1a1a2e' }]}>
         {leagues.map((league) => {
           const isSelected = selectedLeague === league.id;
-          const leagueColor = LEAGUE_COLORS[league.id] || '#fff';
           return (
             <TouchableOpacity
               key={league.id}
@@ -692,7 +691,7 @@ export default function HomeScreen() {
               style={[styles.leagueTopItem, isSelected && styles.leagueTopItemActive]}
               onPress={() => setSelectedLeague(league.id)}
             >
-              <View style={[styles.leagueDot, { backgroundColor: leagueColor }]} />
+              <Image source={{ uri: LEAGUE_FLAGS[league.id] }} style={styles.leagueFlag} resizeMode="cover" />
               <Text style={[styles.leagueTopText, isSelected && styles.leagueTopTextActive]}>{league.name}</Text>
               {(newsCounts[league.id] || 0) > 0 && (
                 <View style={styles.newsCountBadge}>
@@ -739,14 +738,15 @@ const styles = StyleSheet.create({
   searchResultsCount: { fontSize: 13, color: '#888', textAlign: 'right', marginBottom: 10, fontWeight: '600' },
 
   // League Top Menu
-  leagueTopMenu: { flexDirection: 'row', paddingBottom: 0 },
-  leagueTopItem: { flex: 1, alignItems: 'center', paddingVertical: 10, position: 'relative' as const, gap: 3 },
+  leagueTopMenu: { flexDirection: 'row', paddingBottom: 0, paddingTop: 4 },
+  leagueTopItem: { flex: 1, alignItems: 'center', paddingVertical: 10, position: 'relative' as const, gap: 4 },
   leagueTopItemActive: {},
   leagueDot: { width: 8, height: 8, borderRadius: 4 },
-  leagueTopText: { fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: '600' },
+  leagueFlag: { width: 24, height: 16, borderRadius: 2 },
+  leagueTopText: { fontSize: 13, color: 'rgba(255,255,255,0.45)', fontWeight: '700' },
   leagueTopFlag: { fontSize: 10, fontWeight: '900', color: 'rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, overflow: 'hidden' as const },
-  leagueTopTextActive: { color: '#fff', fontWeight: 'bold' },
-  leagueTopIndicator: { position: 'absolute' as const, bottom: 0, left: '15%' as any, right: '15%' as any, height: 3, backgroundColor: '#FFD700', borderTopLeftRadius: 2, borderTopRightRadius: 2 },
+  leagueTopTextActive: { color: '#fff', fontWeight: '900', fontSize: 14 },
+  leagueTopIndicator: { position: 'absolute' as const, bottom: 0, left: '10%' as any, right: '10%' as any, height: 3, backgroundColor: '#FFD700', borderTopLeftRadius: 2, borderTopRightRadius: 2 },
 
   // League Selector
   leagueSelector: { backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e5e5ea' },
