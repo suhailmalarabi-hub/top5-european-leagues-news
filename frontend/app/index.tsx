@@ -29,6 +29,30 @@ try {
   Device = require('expo-device');
 } catch {}
 
+// AdMob imports
+let BannerAd: any = null;
+let InterstitialAd: any = null;
+let BannerAdSize: any = null;
+let TestIds: any = null;
+let AdEventType: any = null;
+let mobileAds: any = null;
+
+try {
+  const adsModule = require('react-native-google-mobile-ads');
+  BannerAd = adsModule.BannerAd;
+  BannerAdSize = adsModule.BannerAdSize;
+  InterstitialAd = adsModule.InterstitialAd;
+  TestIds = adsModule.TestIds;
+  AdEventType = adsModule.AdEventType;
+  mobileAds = adsModule.default;
+  // Initialize AdMob
+  if (mobileAds) {
+    mobileAds().initialize();
+  }
+} catch {
+  // AdMob not available (web/Expo Go)
+}
+
 // Force RTL for Arabic
 I18nManager.allowRTL(true);
 I18nManager.forceRTL(true);
@@ -114,7 +138,60 @@ const DEFAULT_LEAGUES: League[] = [
   { id: 'ligue-1', name: 'الفرنسي', name_en: 'Ligue 1', tour_id: 95, comp_id: 2979, country: 'فرنسا', logo: '' },
 ];
 
-// Notification Banner Component
+// Ad Unit IDs
+const AD_BANNER_ID = Platform.select({
+  ios: 'ca-app-pub-7650114689148142/5665936435',
+  android: 'ca-app-pub-7650114689148142/5665936435',
+}) || '';
+const AD_INTERSTITIAL_ID = Platform.select({
+  ios: 'ca-app-pub-7650114689148142/8100528086',
+  android: 'ca-app-pub-7650114689148142/8100528086',
+}) || '';
+
+// AdMob Banner Component
+const AdBanner = () => {
+  if (!BannerAd || !BannerAdSize) {
+    // Fallback for web/Expo Go
+    return (
+      <View testID="ad-banner" style={styles.adBanner}>
+        <Text style={styles.adBannerLabel}>AD</Text>
+        <Text style={styles.adBannerText}>إعلان</Text>
+      </View>
+    );
+  }
+  return (
+    <View testID="ad-banner" style={styles.adBannerReal}>
+      <BannerAd
+        unitId={AD_BANNER_ID}
+        size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+        requestOptions={{ requestNonPersonalizedAdsOnly: false }}
+      />
+    </View>
+  );
+};
+
+// Interstitial Ad helper
+let interstitialAd: any = null;
+let interstitialLoaded = false;
+
+function loadInterstitial() {
+  if (!InterstitialAd || !AdEventType) return;
+  try {
+    interstitialAd = InterstitialAd.createForAdRequest(AD_INTERSTITIAL_ID);
+    interstitialAd.addAdEventListener(AdEventType.LOADED, () => { interstitialLoaded = true; });
+    interstitialAd.addAdEventListener(AdEventType.CLOSED, () => { interstitialLoaded = false; loadInterstitial(); });
+    interstitialAd.load();
+  } catch {}
+}
+
+function showInterstitial() {
+  if (interstitialAd && interstitialLoaded) {
+    try { interstitialAd.show(); } catch {}
+  }
+}
+
+// Load interstitial on app start
+loadInterstitial();
 const NotificationBanner = ({ notification, onDismiss, color }: { notification: NewsItem | null; onDismiss: () => void; color: string }) => {
   const slideAnim = useRef(new Animated.Value(-120)).current;
 
@@ -453,9 +530,12 @@ export default function HomeScreen() {
       const newRead = new Set(readNewsIds);
       newRead.add(item.id);
       setReadNewsIds(newRead);
-      // Decrement the news count for this league
       const lid = item.league_id || selectedLeague;
       setNewsCounts(prev => ({ ...prev, [lid]: Math.max((prev[lid] || 0) - 1, 0) }));
+    }
+    // Show interstitial ad every 3rd article
+    if (readNewsIds.size > 0 && readNewsIds.size % 3 === 0) {
+      showInterstitial();
     }
     router.push({
       pathname: '/news-detail',
@@ -723,11 +803,8 @@ export default function HomeScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[currentColor]} tintColor={currentColor} />}
       >
         {renderContent()}
-        {/* Ad Banner Placeholder */}
-        <View testID="ad-banner" style={styles.adBanner}>
-          <Text style={styles.adBannerLabel}>AD</Text>
-          <Text style={styles.adBannerText}>إعلان</Text>
-        </View>
+        {/* AdMob Banner */}
+        <AdBanner />
       </ScrollView>
     </SafeAreaView>
     </View>
@@ -857,6 +934,7 @@ const styles = StyleSheet.create({
 
   // Ad Banner
   adBanner: { backgroundColor: '#f0f0f5', borderRadius: 10, paddingVertical: 14, alignItems: 'center', justifyContent: 'center', marginTop: 16, borderWidth: 1, borderColor: '#e0e0e0', borderStyle: 'dashed' },
+  adBannerReal: { alignItems: 'center', marginTop: 16, overflow: 'hidden', borderRadius: 8 },
   adBannerLabel: { fontSize: 10, color: '#aaa', fontWeight: 'bold', letterSpacing: 1 },
   adBannerText: { fontSize: 12, color: '#bbb', marginTop: 2 },
 });
