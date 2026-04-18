@@ -12,9 +12,10 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.totiis.europeannewsleagues",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#000"
+        "backgroundColor": "#1a2744"
       },
       "edgeToEdgeEnabled": true
     },
@@ -34,12 +35,14 @@
           "backgroundColor": "#1a2744"
         }
       ],
-      "react-native-google-mobile-ads"
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-7650114689148142~1322307253",
+          "iosAppId": "ca-app-pub-7650114689148142~1322307253"
+        }
+      ]
     ],
-    "react-native-google-mobile-ads": {
-      "android_app_id": "ca-app-pub-7650114689148142~1322307253",
-      "ios_app_id": "ca-app-pub-7650114689148142~1322307253"
-    },
     "extra": {
       "admob": {
         "ios": {
@@ -54,10 +57,15 @@
           "interstitialId": "ca-app-pub-7650114689148142/8100528086",
           "nativeAdvancedId": "ca-app-pub-7650114689148142/9037145747"
         }
+      },
+      "router": {},
+      "eas": {
+        "projectId": "ab93cd31-a658-42e1-bb8e-778a22755475"
       }
     },
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "owner": "totiis"
   }
 }
