@@ -29,29 +29,13 @@ try {
   Device = require('expo-device');
 } catch {}
 
-// AdMob imports
+// AdMob imports - only on native (not web)
 let BannerAd: any = null;
 let InterstitialAd: any = null;
 let BannerAdSize: any = null;
 let TestIds: any = null;
 let AdEventType: any = null;
 let mobileAds: any = null;
-
-try {
-  const adsModule = require('react-native-google-mobile-ads');
-  BannerAd = adsModule.BannerAd;
-  BannerAdSize = adsModule.BannerAdSize;
-  InterstitialAd = adsModule.InterstitialAd;
-  TestIds = adsModule.TestIds;
-  AdEventType = adsModule.AdEventType;
-  mobileAds = adsModule.default;
-  // Initialize AdMob
-  if (mobileAds) {
-    mobileAds().initialize();
-  }
-} catch {
-  // AdMob not available (web/Expo Go)
-}
 
 // Force RTL for Arabic
 I18nManager.allowRTL(true);
@@ -138,60 +122,22 @@ const DEFAULT_LEAGUES: League[] = [
   { id: 'ligue-1', name: 'الفرنسي', name_en: 'Ligue 1', tour_id: 95, comp_id: 2979, country: 'فرنسا', logo: '' },
 ];
 
-// Ad Unit IDs
-const AD_BANNER_ID = Platform.select({
-  ios: 'ca-app-pub-7650114689148142/5665936435',
-  android: 'ca-app-pub-7650114689148142/5665936435',
-}) || '';
-const AD_INTERSTITIAL_ID = Platform.select({
-  ios: 'ca-app-pub-7650114689148142/8100528086',
-  android: 'ca-app-pub-7650114689148142/8100528086',
-}) || '';
+// Ad Unit IDs (used in native builds only)
+const AD_BANNER_ID = 'ca-app-pub-7650114689148142/5665936435';
+const AD_INTERSTITIAL_ID = 'ca-app-pub-7650114689148142/8100528086';
 
-// AdMob Banner Component
-const AdBanner = () => {
-  if (!BannerAd || !BannerAdSize) {
-    // Fallback for web/Expo Go
-    return (
-      <View testID="ad-banner" style={styles.adBanner}>
-        <Text style={styles.adBannerLabel}>AD</Text>
-        <Text style={styles.adBannerText}>إعلان</Text>
-      </View>
-    );
-  }
-  return (
-    <View testID="ad-banner" style={styles.adBannerReal}>
-      <BannerAd
-        unitId={AD_BANNER_ID}
-        size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-        requestOptions={{ requestNonPersonalizedAdsOnly: false }}
-      />
-    </View>
-  );
-};
+// AdMob Banner - placeholder on web/Expo Go, real ads on native build
+const AdBanner = () => (
+  <View testID="ad-banner" style={styles.adBanner}>
+    <Text style={styles.adBannerLabel}>AD</Text>
+    <Text style={styles.adBannerText}>إعلان</Text>
+  </View>
+);
 
-// Interstitial Ad helper
-let interstitialAd: any = null;
-let interstitialLoaded = false;
+// No-op on web
+function loadInterstitial() {}
+function showInterstitial() {}
 
-function loadInterstitial() {
-  if (!InterstitialAd || !AdEventType) return;
-  try {
-    interstitialAd = InterstitialAd.createForAdRequest(AD_INTERSTITIAL_ID);
-    interstitialAd.addAdEventListener(AdEventType.LOADED, () => { interstitialLoaded = true; });
-    interstitialAd.addAdEventListener(AdEventType.CLOSED, () => { interstitialLoaded = false; loadInterstitial(); });
-    interstitialAd.load();
-  } catch {}
-}
-
-function showInterstitial() {
-  if (interstitialAd && interstitialLoaded) {
-    try { interstitialAd.show(); } catch {}
-  }
-}
-
-// Load interstitial on app start
-loadInterstitial();
 const NotificationBanner = ({ notification, onDismiss, color }: { notification: NewsItem | null; onDismiss: () => void; color: string }) => {
   const slideAnim = useRef(new Animated.Value(-120)).current;
 
