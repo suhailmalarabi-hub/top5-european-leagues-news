@@ -115,11 +115,11 @@ const LEAGUE_FLAGS: Record<string, string> = {
 };
 
 const DEFAULT_LEAGUES: League[] = [
-  { id: 'premier-league', name: 'الإنجليزي', name_en: 'Premier League', tour_id: 93, comp_id: 2968, country: 'إنجلترا', logo: '' },
-  { id: 'la-liga', name: 'الإسباني', name_en: 'La Liga', tour_id: 101, comp_id: 2982, country: 'إسبانيا', logo: '' },
+  { id: 'ligue-1', name: 'الفرنسي', name_en: 'Ligue 1', tour_id: 95, comp_id: 2979, country: 'فرنسا', logo: '' },
   { id: 'serie-a', name: 'الإيطالي', name_en: 'Serie A', tour_id: 100, comp_id: 2981, country: 'إيطاليا', logo: '' },
   { id: 'bundesliga', name: 'الألماني', name_en: 'Bundesliga', tour_id: 98, comp_id: 2980, country: 'ألمانيا', logo: '' },
-  { id: 'ligue-1', name: 'الفرنسي', name_en: 'Ligue 1', tour_id: 95, comp_id: 2979, country: 'فرنسا', logo: '' },
+  { id: 'premier-league', name: 'الإنجليزي', name_en: 'Premier League', tour_id: 93, comp_id: 2968, country: 'إنجلترا', logo: '' },
+  { id: 'la-liga', name: 'الإسباني', name_en: 'La Liga', tour_id: 101, comp_id: 2982, country: 'إسبانيا', logo: '' },
 ];
 
 // Ad Unit IDs (used in native builds only)
@@ -307,7 +307,7 @@ async function registerForPushNotifications() {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [selectedLeague, setSelectedLeague] = useState<string>('premier-league');
+  const [selectedLeague, setSelectedLeague] = useState<string>('la-liga');
   const [activeTab, setActiveTab] = useState<'news' | 'standings' | 'matches'>('news');
   const [leagues] = useState<League[]>(DEFAULT_LEAGUES);
   const [news, setNews] = useState<NewsItem[]>([]);
