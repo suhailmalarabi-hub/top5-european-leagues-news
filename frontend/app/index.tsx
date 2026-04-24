@@ -308,7 +308,7 @@ async function registerForPushNotifications() {
 export default function HomeScreen() {
   const router = useRouter();
   const [selectedLeague, setSelectedLeague] = useState<string>('la-liga');
-  const [activeTab, setActiveTab] = useState<'news' | 'standings' | 'matches'>('news');
+  const [activeTab, setActiveTab] = useState<'news' | 'standings' | 'matches' | 'summary'>('news');
   const [leagues] = useState<League[]>(DEFAULT_LEAGUES);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [standings, setStandings] = useState<StandingItem[]>([]);
@@ -435,7 +435,7 @@ export default function HomeScreen() {
   useEffect(() => {
     if (activeTab === 'news') fetchNews(selectedLeague);
     else if (activeTab === 'standings') fetchStandings(selectedLeague);
-    else fetchMatches(selectedLeague);
+    else if (activeTab === 'matches' || activeTab === 'summary') fetchMatches(selectedLeague);
   }, [selectedLeague, activeTab]);
 
   // Auto-refresh notifications every 5 minutes
@@ -523,9 +523,10 @@ export default function HomeScreen() {
   const renderTabSelector = () => (
     <View style={styles.tabContainer}>
       {([
-        { key: 'news' as const, label: 'الأخبار', icon: 'newspaper-outline' as const },
-        { key: 'standings' as const, label: 'الترتيب', icon: 'trophy-outline' as const },
+        { key: 'summary' as const, label: 'الملخص', icon: 'videocam-outline' as const },
         { key: 'matches' as const, label: 'المباريات', icon: 'football-outline' as const },
+        { key: 'standings' as const, label: 'الترتيب', icon: 'trophy-outline' as const },
+        { key: 'news' as const, label: 'الأخبار', icon: 'newspaper-outline' as const },
       ]).map((tab) => (
         <TouchableOpacity
           key={tab.key}
@@ -668,7 +669,103 @@ export default function HomeScreen() {
       if (standings.length === 0) return <View style={styles.centerContainer}><Ionicons name="trophy-outline" size={48} color="#999" /><Text style={styles.emptyText}>لا يوجد ترتيب متاح</Text></View>;
       return renderStandings();
     }
-    return renderMatches();
+    if (activeTab === 'matches') {
+      return renderMatches();
+    }
+    // Summary tab - finished matches summary
+    const finishedMatches = matches.filter(m => m.status === 'finished');
+    const upcomingMatches = matches.filter(m => m.status !== 'finished');
+    return (
+      <View testID="summary-list">
+        {finishedMatches.length > 0 && (
+          <View>
+            <View style={styles.summarySection}>
+              <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
+              <Text style={styles.summarySectionTitle}>مباريات انتهت</Text>
+            </View>
+            {finishedMatches.map((match) => (
+              <View key={match.id} testID={`summary-${match.id}`} style={styles.summaryCard}>
+                <View style={styles.summaryTeams}>
+                  <View style={styles.summaryTeam}>
+                    {match.home_logo ? <Image source={{ uri: match.home_logo }} style={styles.summaryLogo} resizeMode="contain" /> : null}
+                    <Text style={styles.summaryTeamName} numberOfLines={1}>{match.home_team}</Text>
+                  </View>
+                  <View style={styles.summaryScoreBox}>
+                    <Text style={[styles.summaryScore, { color: currentColor }]}>{match.home_score} - {match.away_score}</Text>
+                    <Text style={styles.summaryStatus}>انتهت</Text>
+                  </View>
+                  <View style={styles.summaryTeam}>
+                    {match.away_logo ? <Image source={{ uri: match.away_logo }} style={styles.summaryLogo} resizeMode="contain" /> : null}
+                    <Text style={styles.summaryTeamName} numberOfLines={1}>{match.away_team}</Text>
+                  </View>
+                </View>
+                {(match as any).scorers_home?.length > 0 || (match as any).scorers_away?.length > 0 ? (
+                  <View style={styles.summaryEvents}>
+                    {((match as any).scorers_home || []).map((s: any, i: number) => (
+                      <View key={`sh${i}`} style={styles.summaryEventRow}>
+                        <Ionicons name="football" size={10} color="#4CAF50" />
+                        <Text style={styles.summaryEventText}>{s.player} {s.time}'</Text>
+                      </View>
+                    ))}
+                    {((match as any).scorers_away || []).map((s: any, i: number) => (
+                      <View key={`sa${i}`} style={styles.summaryEventRow}>
+                        <Ionicons name="football" size={10} color="#4CAF50" />
+                        <Text style={styles.summaryEventText}>{s.player} {s.time}'</Text>
+                      </View>
+                    ))}
+                    {((match as any).cards || []).map((c: any, i: number) => (
+                      <View key={`c${i}`} style={styles.summaryEventRow}>
+                        <View style={[styles.miniCard, { backgroundColor: c.type === 'red' ? '#F44336' : '#FFC107' }]} />
+                        <Text style={styles.summaryEventText}>{c.player} {c.minute}'</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+                {match.match_date ? <Text style={styles.summaryDate}>{match.match_date}</Text> : null}
+              </View>
+            ))}
+          </View>
+        )}
+        {upcomingMatches.length > 0 && (
+          <View>
+            <View style={styles.summarySection}>
+              <Ionicons name="time-outline" size={16} color="#FF9800" />
+              <Text style={styles.summarySectionTitle}>مباريات قادمة</Text>
+            </View>
+            {upcomingMatches.map((match) => (
+              <View key={match.id} style={styles.summaryCard}>
+                <View style={styles.summaryTeams}>
+                  <View style={styles.summaryTeam}>
+                    {match.home_logo ? <Image source={{ uri: match.home_logo }} style={styles.summaryLogo} resizeMode="contain" /> : null}
+                    <Text style={styles.summaryTeamName} numberOfLines={1}>{match.home_team}</Text>
+                  </View>
+                  <View style={styles.summaryScoreBox}>
+                    <Text style={[styles.summaryTime, { color: currentColor }]}>{match.match_time}</Text>
+                    <Text style={styles.summaryDate}>{match.match_date}</Text>
+                  </View>
+                  <View style={styles.summaryTeam}>
+                    {match.away_logo ? <Image source={{ uri: match.away_logo }} style={styles.summaryLogo} resizeMode="contain" /> : null}
+                    <Text style={styles.summaryTeamName} numberOfLines={1}>{match.away_team}</Text>
+                  </View>
+                </View>
+                {match.channel ? (
+                  <View style={styles.summaryChannel}>
+                    <Ionicons name="tv-outline" size={11} color="#666" />
+                    <Text style={styles.summaryChannelText}>{match.channel}</Text>
+                  </View>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        )}
+        {matches.length === 0 && (
+          <View style={styles.centerContainer}>
+            <Ionicons name="videocam-outline" size={48} color="#999" />
+            <Text style={styles.emptyText}>لا توجد ملخصات متاحة</Text>
+          </View>
+        )}
+      </View>
+    );
   };
 
   return (
@@ -861,6 +958,26 @@ const styles = StyleSheet.create({
   eventRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 2 },
   eventText: { fontSize: 11, color: '#666', textAlign: 'right' },
   cardIcon: { width: 10, height: 14, borderRadius: 2 },
+
+  // Summary
+  summarySection: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12, marginBottom: 8, paddingHorizontal: 4 },
+  summarySectionTitle: { fontSize: 15, fontWeight: 'bold', color: '#333' },
+  summaryCard: { backgroundColor: '#fff', borderRadius: 12, padding: 12, marginBottom: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
+  summaryTeams: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  summaryTeam: { flex: 1, alignItems: 'center', gap: 6 },
+  summaryLogo: { width: 36, height: 36 },
+  summaryTeamName: { fontSize: 11, fontWeight: '600', color: '#333', textAlign: 'center' },
+  summaryScoreBox: { alignItems: 'center', paddingHorizontal: 10 },
+  summaryScore: { fontSize: 22, fontWeight: '900' },
+  summaryTime: { fontSize: 16, fontWeight: '800' },
+  summaryStatus: { fontSize: 10, color: '#8e8e93', marginTop: 2 },
+  summaryDate: { fontSize: 10, color: '#aaa', textAlign: 'center', marginTop: 6 },
+  summaryEvents: { borderTopWidth: 0.5, borderTopColor: '#eee', marginTop: 8, paddingTop: 6, gap: 3 },
+  summaryEventRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  summaryEventText: { fontSize: 11, color: '#666' },
+  miniCard: { width: 8, height: 11, borderRadius: 1 },
+  summaryChannel: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 8, backgroundColor: '#f8f8f8', paddingVertical: 4, borderRadius: 6 },
+  summaryChannelText: { fontSize: 10, color: '#888' },
 
   // Notification - looks like system push notification
   notificationBanner: { position: 'absolute', top: 0, left: 8, right: 8, zIndex: 999, borderRadius: 14, overflow: 'hidden' as const, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 10 },
