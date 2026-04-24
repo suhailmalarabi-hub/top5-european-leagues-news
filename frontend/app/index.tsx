@@ -195,12 +195,6 @@ const MatchCard = ({ match, color }: { match: MatchItem; color: string }) => {
           </View>
         )}
         {isFinished && <Text style={styles.finishedBadge}>انتهت</Text>}
-        {match.channel ? (
-          <View style={styles.channelBadge}>
-            <Ionicons name="tv-outline" size={11} color="#666" />
-            <Text style={styles.channelText}>{match.channel}</Text>
-          </View>
-        ) : null}
       </View>
 
       {/* Teams Row */}
@@ -748,12 +742,6 @@ export default function HomeScreen() {
                     <Text style={styles.summaryTeamName} numberOfLines={1}>{match.away_team}</Text>
                   </View>
                 </View>
-                {match.channel ? (
-                  <View style={styles.summaryChannel}>
-                    <Ionicons name="tv-outline" size={11} color="#666" />
-                    <Text style={styles.summaryChannelText}>{match.channel}</Text>
-                  </View>
-                ) : null}
               </View>
             ))}
           </View>
