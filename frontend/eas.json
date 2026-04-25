@@ -11,9 +11,7 @@
     },
     "production": {
       "android": {
-        "buildType": "app-bundle",
-        "enableProguardInReleaseBuilds": true,
-        "enableShrinkResourcesInReleaseBuilds": true
+        "buildType": "app-bundle"
       }
     }
   }
