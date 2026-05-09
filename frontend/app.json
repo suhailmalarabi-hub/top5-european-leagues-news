@@ -41,7 +41,8 @@
           "androidAppId": "ca-app-pub-7650114689148142~1322307253",
           "iosAppId": "ca-app-pub-7650114689148142~1322307253"
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "extra": {
       "admob": {
